@@ -4,7 +4,10 @@
 import tensorflow.compat.v2 as tf
 import tensorflow_datasets as tfds
 import foolbox as fb
+from foolbox import accuracy, samples
+import foolbox.attacks as fa
 import eagerpy as ep
+import numpy as np
 from datetime import datetime
 
 __author__ = "Patrick Cooper"
@@ -71,11 +74,50 @@ for images, labels in ds_train.take(469):  # only take first element of dataset
 
 fmodel = fb.TensorFlowModel(model, bounds=(0, 1))
 
-attack = fb.attacks.LinfPGD()
-epsilons = [0.0, 0.001, 0.01, 0.03, 0.1, 0.3, 0.5, 1.0]
-_, advs, success = attack(fmodel, images_ex, labels_ex, epsilons=epsilons)
+attacks = [
+    fa.FGSM(),
+    fa.LinfPGD(),
+    fa.LinfBasicIterativeAttack(),
+    fa.LinfAdditiveUniformNoiseAttack(),
+    fa.LinfDeepFoolAttack(),
+]
 
-print(success)
+epsilons = [
+    0.0,
+    0.0005,
+    0.001,
+    0.0015,
+    0.002,
+    0.003,
+    0.005,
+    0.01,
+    0.02,
+    0.03,
+    0.1,
+    0.3,
+    0.5,
+    1.0,
+]
+print("epsilons")
+print(epsilons)
+print("")
+
+attack_success = np.zeros((len(attacks), len(epsilons), len(images)), dtype=np.bool)
+for i, attack in enumerate(attacks):
+    _, _, success = attack(fmodel, images, labels, epsilons=epsilons)
+    assert success.shape == (len(epsilons), len(images))
+    success_ = success.numpy()
+    assert success_.dtype == np.bool
+    attack_success[i] = success_
+    print(attack)
+    print("  ", 1.0 - success_.mean(axis=-1).round(2))
+
+robust_accuracy = 1.0 - attack_success.max(axis=0).mean(axis=-1)
+print("")
+print("-" * 79)
+print("")
+print("worst case (best attack per-sample)")
+print("  ", robust_accuracy.round(2))
 
 print("Code is the result of research performed by " + __author__ + " for the paper " + __source_url__ + ". For more"
                                                                     " information please contact " + __email__ + ".")
