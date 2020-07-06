@@ -4,6 +4,7 @@
 import tensorflow.compat.v2 as tf
 import tensorflow_datasets as tfds
 import foolbox as fb
+import eagerpy as ep
 from datetime import datetime
 
 __author__ = "Patrick Cooper"
@@ -42,8 +43,8 @@ ds_test = ds_test.batch(128)
 ds_test = ds_test.cache()
 ds_test = ds_test.prefetch(tf.data.experimental.AUTOTUNE)
 
-logdir = "logs\\scalars\\" + datetime.now().strftime("%Y%m%d-%H%M%S")
-tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=logdir)
+log_dir = "logs\\scalars\\" + datetime.now().strftime("%Y%m%d-%H%M%S")
+tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=log_dir)
 
 model = tf.keras.models.Sequential([
   tf.keras.layers.Flatten(input_shape=(28, 28, 1)),
@@ -62,6 +63,19 @@ model.fit(
     validation_data=ds_test,
     callbacks=[tensorboard_callback]
 )
+
+
+for images, labels in ds_train.take(469):  # only take first element of dataset
+    images_ex = ep.astensors(images)
+    labels_ex = ep.astensors(labels)
+
+fmodel = fb.TensorFlowModel(model, bounds=(0, 1))
+
+attack = fb.attacks.LinfPGD()
+epsilons = [0.0, 0.001, 0.01, 0.03, 0.1, 0.3, 0.5, 1.0]
+_, advs, success = attack(fmodel, images_ex, labels_ex, epsilons=epsilons)
+
+print(success)
 
 print("Code is the result of research performed by " + __author__ + " for the paper " + __source_url__ + ". For more"
                                                                     " information please contact " + __email__ + ".")
