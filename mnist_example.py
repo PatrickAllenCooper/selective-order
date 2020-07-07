@@ -4,7 +4,6 @@
 import tensorflow.compat.v2 as tf
 import tensorflow_datasets as tfds
 import foolbox as fb
-from foolbox import accuracy, samples
 import foolbox.attacks as fa
 import eagerpy as ep
 import numpy as np
@@ -62,7 +61,7 @@ model.compile(
 
 model.fit(
     ds_train,
-    epochs=6,
+    epochs=1,
     validation_data=ds_test,
     callbacks=[tensorboard_callback]
 )
@@ -98,13 +97,14 @@ epsilons = [
     0.5,
     1.0,
 ]
+
 print("epsilons")
 print(epsilons)
 print("")
 
 attack_success = np.zeros((len(attacks), len(epsilons), len(images)), dtype=np.bool)
 for i, attack in enumerate(attacks):
-    _, _, success = attack(fmodel, images, labels, epsilons=epsilons)
+    _, adv, success = attack(fmodel, images, labels, epsilons=epsilons)
     assert success.shape == (len(epsilons), len(images))
     success_ = success.numpy()
     assert success_.dtype == np.bool
