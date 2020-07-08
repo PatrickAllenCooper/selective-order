@@ -18,6 +18,8 @@ __source_url__ = "paper@journal.com"
 tfds.disable_progress_bar()
 tf.enable_v2_behavior()
 
+APPLY_TRANSFER = True
+
 (ds_train, ds_test), ds_info = tfds.load(
     'mnist',
     split=['train', 'test'],
@@ -44,6 +46,13 @@ def build_model():
         metrics=['accuracy'],
     )
     return model
+
+
+# copies model_a to model_b
+def apply_transfer(model_a, model_b):
+    if APPLY_TRANSFER:
+        model_b.set_weights(model_a.get_weights())
+    return model_b
 
 
 ds_train = ds_train.map(
@@ -107,7 +116,7 @@ print("epsilons")
 print(epsilons)
 print("")
 
-# Evaluation of adversarial methods.
+# Evaluation of adversarial methods used
 attack_success = np.zeros((len(attacks), len(epsilons), len(images)), dtype=np.bool)
 for i, attack in enumerate(attacks):
     _, adv, success = attack(fmodel, images, labels, epsilons=epsilons)
@@ -117,7 +126,6 @@ for i, attack in enumerate(attacks):
     attack_success[i] = success_
     print(attack)
     print("  ", 1.0 - success_.mean(axis=-1).round(2))
-
 
 robust_accuracy = 1.0 - attack_success.max(axis=0).mean(axis=-1)
 print("")
@@ -132,7 +140,6 @@ epsilon = 0.005
 _, adv, success = attack(fmodel, images, labels, epsilons=epsilon)
 
 adversarial_learner = build_model()
-
 adversarial_learner.fit(
     adv,
     labels,
@@ -142,10 +149,8 @@ adversarial_learner.fit(
 )
 
 standard_learner = build_model()
-
-#standard_learner.set_weights(adversarial_learner.get_weights())
-
-standard_learner.fit(
+modified_standard_learner = apply_transfer(adversarial_learner, standard_learner)
+modified_standard_learner.fit(
     images,
     labels,
     epochs=5,
