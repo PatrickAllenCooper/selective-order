@@ -55,6 +55,33 @@ def apply_transfer(model_a, model_b):
     return model_b
 
 
+# nest one model within another
+def embed_models(epochs_a, epochs_b):
+    # Apply selected method
+    attack = fa.FGSM()
+    epsilon = 0.005
+    _, adv, success = attack(fmodel, images, labels, epsilons=epsilon)
+
+    adversarial_learner = build_model()
+    adversarial_learner.fit(
+        adv,
+        labels,
+        epochs=epochs_a,
+        validation_data=ds_test,
+        callbacks=[tensorboard_callback]
+    )
+
+    standard_learner = build_model()
+    modified_standard_learner = apply_transfer(adversarial_learner, standard_learner)
+    modified_standard_learner.fit(
+        images,
+        labels,
+        epochs=epochs_b,
+        validation_data=ds_test,
+        callbacks=[tensorboard_callback]
+    )
+
+
 ds_train = ds_train.map(
     normalize_img, num_parallel_calls=tf.data.experimental.AUTOTUNE)
 ds_train = ds_train.cache()
@@ -134,29 +161,9 @@ print("")
 print("worst case (best attack per-sample)")
 print("  ", robust_accuracy.round(2))
 
-# Apply selected method
-attack = fa.FGSM()
-epsilon = 0.005
-_, adv, success = attack(fmodel, images, labels, epsilons=epsilon)
+embed_models(1, 1)
 
-adversarial_learner = build_model()
-adversarial_learner.fit(
-    adv,
-    labels,
-    epochs=1,
-    validation_data=ds_test,
-    callbacks=[tensorboard_callback]
-)
-
-standard_learner = build_model()
-modified_standard_learner = apply_transfer(adversarial_learner, standard_learner)
-modified_standard_learner.fit(
-    images,
-    labels,
-    epochs=5,
-    validation_data=ds_test,
-    callbacks=[tensorboard_callback]
-)
+# TODO: Create distributions of epochs function.
 
 print("Code is the result of research performed by " + __author__ + " for the paper " + __source_url__ + ". For more"
                                                                     " information please contact " + __email__ + ".")
