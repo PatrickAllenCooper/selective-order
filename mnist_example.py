@@ -67,7 +67,7 @@ model.fit(
 )
 
 
-for images, labels in ds_train.take(469):  # only take first element of dataset
+for images, labels in ds_train.take(2000):  # only take first element of dataset
     images_ex = ep.astensors(images)
     labels_ex = ep.astensors(labels)
 
@@ -102,6 +102,11 @@ print("epsilons")
 print(epsilons)
 print("")
 
+attack = fa.FGSM()
+epsilon = 0.005
+_, adv, success = attack(fmodel, images, labels, epsilons=epsilon)
+
+"""
 attack_success = np.zeros((len(attacks), len(epsilons), len(images)), dtype=np.bool)
 for i, attack in enumerate(attacks):
     _, adv, success = attack(fmodel, images, labels, epsilons=epsilons)
@@ -112,12 +117,62 @@ for i, attack in enumerate(attacks):
     print(attack)
     print("  ", 1.0 - success_.mean(axis=-1).round(2))
 
+
 robust_accuracy = 1.0 - attack_success.max(axis=0).mean(axis=-1)
 print("")
 print("-" * 79)
 print("")
 print("worst case (best attack per-sample)")
 print("  ", robust_accuracy.round(2))
+
+"""
+
+#dataset = tf.data.Dataset.from_tensor_slices(adv)
+
+model2 = tf.keras.models.Sequential([
+  tf.keras.layers.Flatten(input_shape=(28, 28, 1)),
+  tf.keras.layers.Dense(128, activation='relu'),
+  tf.keras.layers.Dense(10, activation='softmax')
+])
+model2.compile(
+    loss='sparse_categorical_crossentropy',
+    optimizer=tf.keras.optimizers.Adam(0.001),
+    metrics=['accuracy'],
+)
+
+model2.fit(
+    adv,
+    labels,
+    epochs=1,
+    validation_data=ds_test,
+    callbacks=[tensorboard_callback]
+)
+
+model3 = tf.keras.models.Sequential([
+  tf.keras.layers.Flatten(input_shape=(28, 28, 1)),
+  tf.keras.layers.Dense(128, activation='relu'),
+  tf.keras.layers.Dense(10, activation='softmax')
+])
+model3.compile(
+    loss='sparse_categorical_crossentropy',
+    optimizer=tf.keras.optimizers.Adam(0.001),
+    metrics=['accuracy'],
+)
+
+#model3.set_weights(model2.get_weights())
+
+model3.fit(
+    images,
+    labels,
+    epochs=2,
+    validation_data=ds_test,
+    callbacks=[tensorboard_callback]
+)
+
+# with adv loss: 1.9098 - accuracy: 0.5312 - val_loss: 1.8957 - val_accuracy: 0.4636
+# without adv (1 epoch) loss: 2.3411 - accuracy: 0.1146 - val_loss: 2.1553 - val_accuracy: 0.2631
+# without adv (2 epochs) loss: 1.9481 - accuracy: 0.4062 - val_loss: 2.0425 - val_accuracy: 0.3703
+
 
 print("Code is the result of research performed by " + __author__ + " for the paper " + __source_url__ + ". For more"
                                                                     " information please contact " + __email__ + ".")
