@@ -107,11 +107,7 @@ print("epsilons")
 print(epsilons)
 print("")
 
-attack = fa.FGSM()
-epsilon = 0.005
-_, adv, success = attack(fmodel, images, labels, epsilons=epsilon)
-
-"""
+# Evaluation of adversarial methods.
 attack_success = np.zeros((len(attacks), len(epsilons), len(images)), dtype=np.bool)
 for i, attack in enumerate(attacks):
     _, adv, success = attack(fmodel, images, labels, epsilons=epsilons)
@@ -130,11 +126,14 @@ print("")
 print("worst case (best attack per-sample)")
 print("  ", robust_accuracy.round(2))
 
-"""
+# Apply selected method
+attack = fa.FGSM()
+epsilon = 0.005
+_, adv, success = attack(fmodel, images, labels, epsilons=epsilon)
 
-model2 = build_model()
+adversarial_learner = build_model()
 
-model2.fit(
+adversarial_learner.fit(
     adv,
     labels,
     epochs=1,
@@ -142,11 +141,11 @@ model2.fit(
     callbacks=[tensorboard_callback]
 )
 
-model3 = build_model()
+standard_learner = build_model()
 
-#model3.set_weights(model2.get_weights())
+#standard_learner.set_weights(adversarial_learner.get_weights())
 
-model3.fit(
+standard_learner.fit(
     images,
     labels,
     epochs=5,
