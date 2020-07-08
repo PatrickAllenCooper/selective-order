@@ -159,20 +159,15 @@ model3.compile(
     metrics=['accuracy'],
 )
 
-#model3.set_weights(model2.get_weights())
+model3.set_weights(model2.get_weights())
 
 model3.fit(
     images,
     labels,
-    epochs=2,
+    epochs=1,
     validation_data=ds_test,
     callbacks=[tensorboard_callback]
 )
-
-# with adv loss: 1.9098 - accuracy: 0.5312 - val_loss: 1.8957 - val_accuracy: 0.4636
-# without adv (1 epoch) loss: 2.3411 - accuracy: 0.1146 - val_loss: 2.1553 - val_accuracy: 0.2631
-# without adv (2 epochs) loss: 1.9481 - accuracy: 0.4062 - val_loss: 2.0425 - val_accuracy: 0.3703
-
 
 print("Code is the result of research performed by " + __author__ + " for the paper " + __source_url__ + ". For more"
                                                                     " information please contact " + __email__ + ".")
