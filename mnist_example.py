@@ -32,6 +32,20 @@ def normalize_img(image, label):
     return tf.cast(image, tf.float32) / 255., label
 
 
+def build_model():
+    model = tf.keras.models.Sequential([
+        tf.keras.layers.Flatten(input_shape=(28, 28, 1)),
+        tf.keras.layers.Dense(128, activation='relu'),
+        tf.keras.layers.Dense(10, activation='softmax')
+    ])
+    model.compile(
+        loss='sparse_categorical_crossentropy',
+        optimizer=tf.keras.optimizers.Adam(0.001),
+        metrics=['accuracy'],
+    )
+    return model
+
+
 ds_train = ds_train.map(
     normalize_img, num_parallel_calls=tf.data.experimental.AUTOTUNE)
 ds_train = ds_train.cache()
@@ -48,18 +62,9 @@ ds_test = ds_test.prefetch(tf.data.experimental.AUTOTUNE)
 log_dir = "logs\\scalars\\" + datetime.now().strftime("%Y%m%d-%H%M%S")
 tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=log_dir)
 
-model = tf.keras.models.Sequential([
-  tf.keras.layers.Flatten(input_shape=(28, 28, 1)),
-  tf.keras.layers.Dense(128, activation='relu'),
-  tf.keras.layers.Dense(10, activation='softmax')
-])
-model.compile(
-    loss='sparse_categorical_crossentropy',
-    optimizer=tf.keras.optimizers.Adam(0.001),
-    metrics=['accuracy'],
-)
+baseline_model = build_model()
 
-model.fit(
+baseline_model.fit(
     ds_train,
     epochs=1,
     validation_data=ds_test,
@@ -71,7 +76,7 @@ for images, labels in ds_train.take(1):  # only take first element of dataset
     images_ex = ep.astensors(images)
     labels_ex = ep.astensors(labels)
 
-fmodel = fb.TensorFlowModel(model, bounds=(0, 1))
+fmodel = fb.TensorFlowModel(baseline_model, bounds=(0, 1))
 
 attacks = [
     fa.FGSM(),
@@ -127,16 +132,7 @@ print("  ", robust_accuracy.round(2))
 
 """
 
-model2 = tf.keras.models.Sequential([
-  tf.keras.layers.Flatten(input_shape=(28, 28, 1)),
-  tf.keras.layers.Dense(128, activation='relu'),
-  tf.keras.layers.Dense(10, activation='softmax')
-])
-model2.compile(
-    loss='sparse_categorical_crossentropy',
-    optimizer=tf.keras.optimizers.Adam(0.001),
-    metrics=['accuracy'],
-)
+model2 = build_model()
 
 model2.fit(
     adv,
@@ -146,16 +142,7 @@ model2.fit(
     callbacks=[tensorboard_callback]
 )
 
-model3 = tf.keras.models.Sequential([
-  tf.keras.layers.Flatten(input_shape=(28, 28, 1)),
-  tf.keras.layers.Dense(128, activation='relu'),
-  tf.keras.layers.Dense(10, activation='softmax')
-])
-model3.compile(
-    loss='sparse_categorical_crossentropy',
-    optimizer=tf.keras.optimizers.Adam(0.001),
-    metrics=['accuracy'],
-)
+model3 = build_model()
 
 #model3.set_weights(model2.get_weights())
 
