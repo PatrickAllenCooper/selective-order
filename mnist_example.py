@@ -159,12 +159,12 @@ model3.compile(
     metrics=['accuracy'],
 )
 
-model3.set_weights(model2.get_weights())
+#model3.set_weights(model2.get_weights())
 
 model3.fit(
     images,
     labels,
-    epochs=1,
+    epochs=5,
     validation_data=ds_test,
     callbacks=[tensorboard_callback]
 )
