@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""Intended to establish a reasonable baseline for comparison via selective injection within mnist."""
+"""Intended to establish a reasonable baseline for comparison via selective injection within sun397."""
 
 import tensorflow.compat.v2 as tf
 import tensorflow_datasets as tfds
@@ -19,7 +19,7 @@ tfds.disable_progress_bar()
 tf.enable_v2_behavior()
 
 (ds_train, ds_test), ds_info = tfds.load(
-    'mnist',
+    'sun397',
     split=['train', 'test'],
     shuffle_files=True,
     as_supervised=True,
@@ -67,7 +67,7 @@ model.fit(
 )
 
 
-for images, labels in ds_train.take(1):  # only take first element of dataset
+for images, labels in ds_train.take(1):
     images_ex = ep.astensors(images)
     labels_ex = ep.astensors(labels)
 
@@ -105,67 +105,3 @@ print("")
 attack = fa.FGSM()
 epsilon = 0.005
 _, adv, success = attack(fmodel, images, labels, epsilons=epsilon)
-
-"""
-attack_success = np.zeros((len(attacks), len(epsilons), len(images)), dtype=np.bool)
-for i, attack in enumerate(attacks):
-    _, adv, success = attack(fmodel, images, labels, epsilons=epsilons)
-    assert success.shape == (len(epsilons), len(images))
-    success_ = success.numpy()
-    assert success_.dtype == np.bool
-    attack_success[i] = success_
-    print(attack)
-    print("  ", 1.0 - success_.mean(axis=-1).round(2))
-
-
-robust_accuracy = 1.0 - attack_success.max(axis=0).mean(axis=-1)
-print("")
-print("-" * 79)
-print("")
-print("worst case (best attack per-sample)")
-print("  ", robust_accuracy.round(2))
-
-"""
-
-model2 = tf.keras.models.Sequential([
-  tf.keras.layers.Flatten(input_shape=(28, 28, 1)),
-  tf.keras.layers.Dense(128, activation='relu'),
-  tf.keras.layers.Dense(10, activation='softmax')
-])
-model2.compile(
-    loss='sparse_categorical_crossentropy',
-    optimizer=tf.keras.optimizers.Adam(0.001),
-    metrics=['accuracy'],
-)
-
-model2.fit(
-    adv,
-    labels,
-    epochs=1,
-    validation_data=ds_test,
-    callbacks=[tensorboard_callback]
-)
-
-model3 = tf.keras.models.Sequential([
-  tf.keras.layers.Flatten(input_shape=(28, 28, 1)),
-  tf.keras.layers.Dense(128, activation='relu'),
-  tf.keras.layers.Dense(10, activation='softmax')
-])
-model3.compile(
-    loss='sparse_categorical_crossentropy',
-    optimizer=tf.keras.optimizers.Adam(0.001),
-    metrics=['accuracy'],
-)
-
-#model3.set_weights(model2.get_weights())
-
-model3.fit(
-    images,
-    labels,
-    epochs=5,
-    validation_data=ds_test,
-    callbacks=[tensorboard_callback]
-)
-
-print("Code is the result of research performed by " + __author__ + " for the paper " + __source_url__ + ". For more"
-                                                                    " information please contact " + __email__ + ".")
