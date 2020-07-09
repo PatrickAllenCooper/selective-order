@@ -202,6 +202,8 @@ attack = fa.FGSM()
 distribution = st.poisson
 epoch_cycle(distribution, attack)
 
-
+# TODO: Build a method for expressing performance across time, that is, create a log report.
+# TODO: Create a method to evaluate other transfer methods.
+# TODO: Iterate through all epsilons, distributions, attacks, and transfer methods in a grid search fashion.
 print("Code is the result of research performed by " + __author__ + " for the paper " + __source_url__ + ". For more"
                                                                     " information please contact " + __email__ + ".")
