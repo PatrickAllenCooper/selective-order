@@ -8,6 +8,7 @@ import foolbox.attacks as fa
 import eagerpy as ep
 import numpy as np
 import scipy.stats as st
+import matplotlib.pyplot as plt
 from datetime import datetime
 
 __author__ = "Patrick Cooper"
@@ -20,6 +21,7 @@ tfds.disable_progress_bar()
 tf.enable_v2_behavior()
 
 APPLY_TRANSFER = True
+BASE_SCALAR = 1
 
 (ds_train, ds_test), ds_info = tfds.load(
     'mnist',
@@ -57,9 +59,9 @@ def apply_transfer(model_a, model_b):
 
 
 # nest one model within another
-def embed_models(epochs_a, epochs_b):
+def embed_models(epochs_a, epochs_b, attack):
+
     # Apply selected method
-    attack = fa.FGSM()
     epsilon = 0.005
     _, adv, success = attack(fmodel, images, labels, epsilons=epsilon)
 
@@ -84,8 +86,19 @@ def embed_models(epochs_a, epochs_b):
 
 
 # injects weights of adversarial models into  as given by distribution
-def distribution_injection(distribution):
-    for i in enumerate(st.bernoulli.a)
+def epoch_cycle(distribution, attack):
+    # display epoch cycle distribution used
+    fig, ax = plt.subplots(1, 1)
+    mu = 5
+    r = distribution.rvs(mu, size=100)
+    ax.plot(r)
+    plt.show()
+    mean, var, skew, kurt = distribution.stats(mu, moments='mvsk')
+    for x_entries in range(r.size):
+        for amount_of_entries in r:
+            embed_models(amount_of_entries, BASE_SCALAR, attack)
+
+
 
 
 ds_train = ds_train.map(
@@ -185,9 +198,10 @@ print("")
 print("worst case (best attack per-sample)")
 print("  ", robust_accuracy.round(2))
 
-embed_models(1, 1)
+attack = fa.FGSM()
+distribution = st.poisson
+epoch_cycle(distribution, attack)
 
-# TODO: Create distributions of epochs function.
 
 print("Code is the result of research performed by " + __author__ + " for the paper " + __source_url__ + ". For more"
                                                                     " information please contact " + __email__ + ".")
