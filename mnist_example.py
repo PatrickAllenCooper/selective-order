@@ -7,6 +7,7 @@ import foolbox as fb
 import foolbox.attacks as fa
 import eagerpy as ep
 import numpy as np
+import scipy.stats as st
 from datetime import datetime
 
 __author__ = "Patrick Cooper"
@@ -82,6 +83,11 @@ def embed_models(epochs_a, epochs_b):
     )
 
 
+# injects weights of adversarial models into  as given by distribution
+def distribution_injection(distribution):
+    for i in enumerate(st.bernoulli.a)
+
+
 ds_train = ds_train.map(
     normalize_img, num_parallel_calls=tf.data.experimental.AUTOTUNE)
 ds_train = ds_train.cache()
@@ -137,6 +143,24 @@ epsilons = [
     0.3,
     0.5,
     1.0,
+]
+
+distributions = [
+    st.bernoulli,
+    st.betabinom,
+    st.binom,
+    st.boltzmann,
+    st.dlaplace,
+    st.geom,
+    st.hypergeom,
+    st.logser,
+    st.nbinom,
+    st.planck,
+    st.poisson,
+    st.randint,
+    st.skellam,
+    st.zipf,
+    st.yulesimon
 ]
 
 print("epsilons")
