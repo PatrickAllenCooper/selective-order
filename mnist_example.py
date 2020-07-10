@@ -3,11 +3,12 @@
 
 import tensorflow.compat.v2 as tf
 import tensorflow_datasets as tfds
+import pandas as pd
 import foolbox as fb
 import foolbox.attacks as fa
 import eagerpy as ep
 import numpy as np
-import scipy.stats as st
+import scipy as sp
 import matplotlib.pyplot as plt
 from datetime import datetime
 
@@ -55,11 +56,12 @@ def build_model():
 def apply_transfer(model_a, model_b):
     if APPLY_TRANSFER:
         model_b.set_weights(model_a.get_weights())
+
     return model_b
 
 
 # nest one model within another
-def embed_models(epochs_a, epochs_b, attack):
+def embed_models(epochs_a, epochs_b, attack, epoch_results):
 
     # Apply selected method
     epsilon = 0.005
@@ -76,29 +78,42 @@ def embed_models(epochs_a, epochs_b, attack):
 
     standard_learner = build_model()
     modified_standard_learner = apply_transfer(adversarial_learner, standard_learner)
-    modified_standard_learner.fit(
+    train_history = modified_standard_learner.fit(
         images,
         labels,
         epochs=epochs_b,
         validation_data=ds_test,
         callbacks=[tensorboard_callback]
     )
+    #np.array([[1, 2, 3, 4, 5], [4, 5, 6, 7, 8], [7, 8, 9, 10, 11]]
+    epoch_results.append([['loss', train_history.history['loss']], ['accuracy', train_history.history['accuracy']]])
+    return epoch_results
 
 
 # injects weights of adversarial models into  as given by distribution
-def epoch_cycle(distribution, attack):
+def epoch_cycle(x, attack):
     # display epoch cycle distribution used
-    fig, ax = plt.subplots(1, 1)
-    mu = 5
-    r = distribution.rvs(mu, size=100)
-    ax.plot(r)
+    # shape
+    a = 5.0
+    n = 1000
+    s = np.random.power(a, n)
+    count, bins, ignored = plt.hist(s, bins=1)
+    x = np.linspace(0, 1, 100)
+    y = a * x ** (a - 1.)
+    normed_y = n * np.diff(bins)[0] * y
+    plt.title('Epoch Proportion')
+    plt.xlabel('Epoch Set Number')
+    plt.ylabel('Number Of Standard Training Injections')
+    plt.legend()
     plt.show()
-    mean, var, skew, kurt = distribution.stats(mu, moments='mvsk')
-    for x_entries in range(r.size):
-        for amount_of_entries in r:
-            embed_models(amount_of_entries, BASE_SCALAR, attack)
 
+    results_list = np.empty([3, 5])
+    count = count.astype(int)
+    for x_entries in range(count.size):
+        for amount_of_entries in count:
+            results_list = embed_models(amount_of_entries, BASE_SCALAR, attack)
 
+    return results_list
 
 
 ds_train = ds_train.map(
@@ -159,22 +174,9 @@ epsilons = [
 ]
 
 distributions = [
-    st.bernoulli,
-    st.betabinom,
-    st.binom,
-    st.boltzmann,
-    st.dlaplace,
-    st.geom,
-    st.hypergeom,
-    st.logser,
-    st.nbinom,
-    st.planck,
-    st.poisson,
-    st.randint,
-    st.skellam,
-    st.zipf,
-    st.yulesimon
+    sp.random.poisson,
 ]
+
 
 print("epsilons")
 print(epsilons)
@@ -199,11 +201,20 @@ print("worst case (best attack per-sample)")
 print("  ", robust_accuracy.round(2))
 
 attack = fa.FGSM()
-distribution = st.poisson
-epoch_cycle(distribution, attack)
+distribution = sp.random.poisson(lam=1, size=100)
+
+results = np.empty([3, 5])
+data = epoch_cycle(distribution, attack)
+for i in enumerate(data):
+    datum = data[i]
+    results.append(pd.DataFrame(datum, columns=['Epoch Number', 'Loss', 'Accuracy', 'Validation Loss',
+                                                'Validation Accuracy']))
+excel_log = "excel_log\\spreadsheets\\Result_" + datetime.now().strftime("%Y%m%d-%H%M%S") + ".xlsx"
+results.to_excel(excel_log, index=False)
 
 # TODO: Build a method for expressing performance across time, that is, create a log report.
 # TODO: Create a method to evaluate other transfer methods.
 # TODO: Iterate through all epsilons, distributions, attacks, and transfer methods in a grid search fashion.
+# TODO: Add shap explainers.
 print("Code is the result of research performed by " + __author__ + " for the paper " + __source_url__ + ". For more"
                                                                     " information please contact " + __email__ + ".")
