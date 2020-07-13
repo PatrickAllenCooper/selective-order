@@ -73,7 +73,7 @@ def embed_models(epochs_a, epochs_b, attack, epoch_results):
         labels,
         epochs=epochs_a,
         validation_data=ds_test,
-        callbacks=[tensorboard_callback]
+        callbacks=[]
     )
 
     standard_learner = build_model()
