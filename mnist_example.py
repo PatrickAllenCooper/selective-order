@@ -9,6 +9,8 @@ import foolbox.attacks as fa
 import eagerpy as ep
 import numpy as np
 import scipy as sp
+import ast
+import os.path as os
 import matplotlib.pyplot as plt
 from datetime import datetime
 
@@ -23,6 +25,8 @@ tf.enable_v2_behavior()
 
 APPLY_TRANSFER = True
 BASE_SCALAR = 1
+CONFIGURATION_DIRECTORY = "mnist_configuration.txt"
+SHOW_DISTRIBUTION_GRAPH = True
 
 (ds_train, ds_test), ds_info = tfds.load(
     'mnist',
@@ -53,18 +57,18 @@ def build_model():
 
 
 # copies model_a to model_b
-def apply_transfer(model_a, model_b):
+def apply_transfer(model_a, model_b, transfer):
     if APPLY_TRANSFER:
-        model_b.set_weights(model_a.get_weights())
+        if transfer == "Direct Copy Weights":
+            model_b.set_weights(model_a.get_weights())
 
     return model_b
 
 
 # nest one model within another
-def embed_models(epochs_a, epochs_b, attack, epoch_results):
+def embed_models(epochs_a, epochs_b, attack, epsilon, transfer):
 
     # Apply selected method
-    epsilon = 0.005
     _, adv, success = attack(fmodel, images, labels, epsilons=epsilon)
 
     adversarial_learner = build_model()
@@ -77,7 +81,7 @@ def embed_models(epochs_a, epochs_b, attack, epoch_results):
     )
 
     standard_learner = build_model()
-    modified_standard_learner = apply_transfer(adversarial_learner, standard_learner)
+    modified_standard_learner = apply_transfer(adversarial_learner, standard_learner, transfer)
     train_history = modified_standard_learner.fit(
         images,
         labels,
@@ -85,19 +89,19 @@ def embed_models(epochs_a, epochs_b, attack, epoch_results):
         validation_data=ds_test,
         callbacks=[tensorboard_callback]
     )
-    #np.array([[1, 2, 3, 4, 5], [4, 5, 6, 7, 8], [7, 8, 9, 10, 11]]
-    epoch_results.append([['loss', train_history.history['loss']], ['accuracy', train_history.history['accuracy']]])
+
+    epoch_results = np.array([[12, 13, 14, 15, 16]])
+    
     return epoch_results
 
 
 # injects weights of adversarial models into  as given by distribution
-def epoch_cycle(x, attack):
+def epoch_cycle(attack, epsilon, transfer, distribution):
     # display epoch cycle distribution used
     # shape
     a = 5.0
     n = 1000
-    s = np.random.power(a, n)
-    count, bins, ignored = plt.hist(s, bins=1)
+    count, bins, ignored = plt.hist(distribution, bins=2)
     x = np.linspace(0, 1, 100)
     y = a * x ** (a - 1.)
     normed_y = n * np.diff(bins)[0] * y
@@ -105,15 +109,23 @@ def epoch_cycle(x, attack):
     plt.xlabel('Epoch Set Number')
     plt.ylabel('Number Of Standard Training Injections')
     plt.legend()
-    plt.show()
+    if SHOW_DISTRIBUTION_GRAPH:
+        plt.show()
 
-    results_list = np.empty([3, 5])
     count = count.astype(int)
     for x_entries in range(count.size):
         for amount_of_entries in count:
-            results_list = embed_models(amount_of_entries, BASE_SCALAR, attack)
+            results_list = embed_models(amount_of_entries, BASE_SCALAR, attack, epsilon, transfer)
 
     return results_list
+
+
+def unroll_print(results):
+        data = pd.DataFrame(results, columns=['Epoch Number', 'Loss', 'Accuracy', 'Validation Loss',
+                                                        'Validation Accuracy'])
+
+        excel_log = "excel_log\\spreadsheets\\Result_" + datetime.now().strftime("%Y%m%d-%H%M%S") + ".xlsx"
+        data.to_excel(excel_log, index=False)
 
 
 ds_train = ds_train.map(
@@ -173,8 +185,29 @@ epsilons = [
     1.0,
 ]
 
+transfer_methods = [
+    "Transfer With Last Layer",
+    "Transfer With No Last Layer",
+    "Direct Copy Weights"
+]
+
+# TODO: Add distribution arguments
 distributions = [
-    sp.random.poisson,
+    np.random.poisson(lam=1, size=100),
+    """
+    np.random.power(),
+    np.random.beta(),
+    np.random.dirichlet(),
+    np.random.f(),
+    np.random.gamma(),
+    np.random.geometric(),
+    np.random.logistic(),
+    np.random.multinomial(),
+    np.random.normal(),
+    np.random.pareto(),
+    np.random.lognormal(),
+    np.random.uniform(),
+    """
 ]
 
 
@@ -200,21 +233,35 @@ print("")
 print("worst case (best attack per-sample)")
 print("  ", robust_accuracy.round(2))
 
-attack = fa.FGSM()
-distribution = sp.random.poisson(lam=1, size=100)
-
 results = np.empty([3, 5])
-data = epoch_cycle(distribution, attack)
-for i in enumerate(data):
-    datum = data[i]
-    results.append(pd.DataFrame(datum, columns=['Epoch Number', 'Loss', 'Accuracy', 'Validation Loss',
-                                                'Validation Accuracy']))
-excel_log = "excel_log\\spreadsheets\\Result_" + datetime.now().strftime("%Y%m%d-%H%M%S") + ".xlsx"
-results.to_excel(excel_log, index=False)
 
-# TODO: Build a method for expressing performance across time, that is, create a log report.
-# TODO: Create a method to evaluate other transfer methods.
-# TODO: Iterate through all epsilons, distributions, attacks, and transfer methods in a grid search fashion.
-# TODO: Add shap explainers.
+if os.isfile(CONFIGURATION_DIRECTORY):
+    file = open(CONFIGURATION_DIRECTORY, "r")
+    contents = file.read()
+    config = ast.literal_eval(contents)
+    attack, epsilon, transfer, distribution = (config[key] for key in ['Attack', 'Epsilon', 'Transfer_Methods',
+                                                                       'Distribution'])
+    data = epoch_cycle(attack, epsilon, transfer, distribution)
+    unroll_print(data)
+    for i in enumerate(data):
+        datum = data[i]
+        results.append(pd.DataFrame(datum, columns=['Epoch Number', 'Loss', 'Accuracy', 'Validation Loss',
+                                                    'Validation Accuracy']))
+    file.close()
+
+else:
+    # grid search attacks, epsilons, transfer methods, distributions
+    # evaluates based on test acc
+    for attack in attacks:
+        for epsilon in epsilons:
+            for transfer in transfer_methods:
+                for distribution in distributions:
+                    # solution for best available data
+                    data = epoch_cycle(attack, epsilon, transfer, distribution)
+                    unroll_print(data)
+
+# TODO: Generalize capability of
+# TODO: Introduce capacity for composite transfer modes. ltg
+# TODO: Add shap explainers, only for best model. ltg.
 print("Code is the result of research performed by " + __author__ + " for the paper " + __source_url__ + ". For more"
                                                                     " information please contact " + __email__ + ".")

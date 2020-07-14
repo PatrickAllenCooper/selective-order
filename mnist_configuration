@@ -1,0 +1,1 @@
+{'Attack': "FGSM", 'Epsilon': 0.0015, 'Transfer_Methods': "Direct Copy Weights", 'Distribution': "poisson"}
