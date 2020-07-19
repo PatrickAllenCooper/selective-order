@@ -82,7 +82,7 @@ def embed_models(epochs_a, epochs_b, attack, epsilon, transfer):
 
     standard_learner = build_model()
     modified_standard_learner = apply_transfer(adversarial_learner, standard_learner, transfer)
-    train_history = modified_standard_learner.fit(
+    history = modified_standard_learner.fit(
         images,
         labels,
         epochs=epochs_b,
@@ -90,15 +90,19 @@ def embed_models(epochs_a, epochs_b, attack, epsilon, transfer):
         callbacks=[tensorboard_callback]
     )
 
-    epoch_results = np.array([[12, 13, 14, 15, 16]])
+    acc = history.history['accuracy']
+    val_acc = history.history['val_accuracy']
+
+    loss = history.history['loss']
+    val_loss = history.history['val_loss']
+
+    epoch_results = np.array([[loss, acc, val_loss, val_acc]])
     
     return epoch_results
 
 
 # injects weights of adversarial models into  as given by distribution
 def epoch_cycle(attack, epsilon, transfer, distribution):
-    # display epoch cycle distribution used
-    # shape
     a = 5.0
     n = 1000
     count, bins, ignored = plt.hist(distribution, bins=2)
@@ -112,17 +116,17 @@ def epoch_cycle(attack, epsilon, transfer, distribution):
     if SHOW_DISTRIBUTION_GRAPH:
         plt.show()
 
-    count = count.astype(int)
-    for x_entries in range(count.size):
+    for x_entries in range(count.astype(int)):
         for amount_of_entries in count:
             results_list = embed_models(amount_of_entries, BASE_SCALAR, attack, epsilon, transfer)
+            results_list = np.insert(results_list, count, axis=0)
 
     return results_list
 
 
 def unroll_print(results):
         data = pd.DataFrame(results, columns=['Epoch Number', 'Loss', 'Accuracy', 'Validation Loss',
-                                                        'Validation Accuracy'])
+                                              'Validation Accuracy'])
 
         excel_log = "excel_log\\spreadsheets\\Result_" + datetime.now().strftime("%Y%m%d-%H%M%S") + ".xlsx"
         data.to_excel(excel_log, index=False)
@@ -194,7 +198,6 @@ transfer_methods = [
 # TODO: Add distribution arguments
 distributions = [
     np.random.poisson(lam=1, size=100),
-    """
     np.random.power(),
     np.random.beta(),
     np.random.dirichlet(),
@@ -207,7 +210,6 @@ distributions = [
     np.random.pareto(),
     np.random.lognormal(),
     np.random.uniform(),
-    """
 ]
 
 
@@ -250,18 +252,15 @@ if os.isfile(CONFIGURATION_DIRECTORY):
     file.close()
 
 else:
-    # grid search attacks, epsilons, transfer methods, distributions
-    # evaluates based on test acc
     for attack in attacks:
         for epsilon in epsilons:
             for transfer in transfer_methods:
                 for distribution in distributions:
-                    # solution for best available data
                     data = epoch_cycle(attack, epsilon, transfer, distribution)
                     unroll_print(data)
 
-# TODO: Generalize capability of
 # TODO: Introduce capacity for composite transfer modes. ltg
 # TODO: Add shap explainers, only for best model. ltg.
+
 print("Code is the result of research performed by " + __author__ + " for the paper " + __source_url__ + ". For more"
                                                                     " information please contact " + __email__ + ".")
