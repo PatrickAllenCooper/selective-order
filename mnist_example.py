@@ -8,7 +8,6 @@ import foolbox as fb
 import foolbox.attacks as fa
 import eagerpy as ep
 import numpy as np
-import scipy as sp
 import ast
 import os.path as os
 import matplotlib.pyplot as plt
@@ -27,6 +26,7 @@ APPLY_TRANSFER = True
 BASE_SCALAR = 1
 CONFIGURATION_DIRECTORY = "mnist_configuration.txt"
 SHOW_DISTRIBUTION_GRAPH = True
+BINNED_CYCLES = 4
 
 (ds_train, ds_test), ds_info = tfds.load(
     'mnist',
@@ -105,7 +105,7 @@ def embed_models(epochs_a, epochs_b, attack, epsilon, transfer):
 def epoch_cycle(attack, epsilon, transfer, distribution):
     a = 5.0
     n = 1000
-    count, bins, ignored = plt.hist(distribution, bins=2)
+    count, bins, ignored = plt.hist(distribution, bins=BINNED_CYCLES)
     x = np.linspace(0, 1, 100)
     y = a * x ** (a - 1.)
     normed_y = n * np.diff(bins)[0] * y
@@ -116,10 +116,11 @@ def epoch_cycle(attack, epsilon, transfer, distribution):
     if SHOW_DISTRIBUTION_GRAPH:
         plt.show()
 
-    for x_entries in range(count.astype(int)):
-        for amount_of_entries in count:
+    count = np.array(count.astype(int))
+    for x_entries in count:
+        for amount_of_entries in range(x_entries):
             results_list = embed_models(amount_of_entries, BASE_SCALAR, attack, epsilon, transfer)
-            results_list = np.insert(results_list, count, axis=0)
+            results_list = np.insert(results_list, 0, x_entries, axis=0)
 
     return results_list
 
@@ -198,6 +199,7 @@ transfer_methods = [
 # TODO: Add distribution arguments
 distributions = [
     np.random.poisson(lam=1, size=100),
+    """
     np.random.power(),
     np.random.beta(),
     np.random.dirichlet(),
@@ -210,6 +212,7 @@ distributions = [
     np.random.pareto(),
     np.random.lognormal(),
     np.random.uniform(),
+    """
 ]
 
 
@@ -252,14 +255,17 @@ if os.isfile(CONFIGURATION_DIRECTORY):
     file.close()
 
 else:
-    for attack in attacks:
-        for epsilon in epsilons:
-            for transfer in transfer_methods:
+    for a_idx, attack in enumerate(attacks):
+        for e_idx, epsilon in enumerate(epsilons):
+            for t_idx, transfer in enumerate(transfer_methods):
                 for distribution in distributions:
+                    if (a_idx+1) % 5 == 0:
+                        print("Currently starting attack " + str(a_idx) + " with epsilon " + str(e_idx) + " and transfer method "
+                              + str(t_idx) + ".")
                     data = epoch_cycle(attack, epsilon, transfer, distribution)
                     unroll_print(data)
 
-# TODO: Introduce capacity for composite transfer modes. ltg
+# TODO: Introduce capacity for composite transfer modes. ltg.
 # TODO: Add shap explainers, only for best model. ltg.
 
 print("Code is the result of research performed by " + __author__ + " for the paper " + __source_url__ + ". For more"
