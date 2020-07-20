@@ -24,7 +24,7 @@ tf.enable_v2_behavior()
 
 APPLY_TRANSFER = True
 BASE_SCALAR = 1
-CONFIGURATION_DIRECTORY = "mnist_configuration.txt"
+CONFIGURATION_DIRECTORY = "mnist_configuration"
 SHOW_DISTRIBUTION_GRAPH = False
 BINNED_CYCLES = 4
 
