@@ -27,6 +27,7 @@ BASE_SCALAR = 1
 CONFIGURATION_DIRECTORY = "mnist_configuration"
 SHOW_DISTRIBUTION_GRAPH = False
 BINNED_CYCLES = 4
+PERFORM_GS = True
 
 log_dir = os.join('logs', 'scalars', datetime.now().strftime("%Y%m%d-%H%M%S"))
 excel_log = os.join('excel_log', 'spreadsheets', 'Result_', datetime.now().strftime("%Y%m%d-%H%M%S") + ".xlsx")
@@ -241,7 +242,7 @@ print("  ", robust_accuracy.round(2))
 
 results = np.empty([3, 5])
 
-if os.isfile(CONFIGURATION_DIRECTORY):
+if os.isfile(CONFIGURATION_DIRECTORY) and PERFORM_GS is False:
     file = open(CONFIGURATION_DIRECTORY, "r")
     contents = file.read()
     config = ast.literal_eval(contents)
