@@ -30,7 +30,7 @@ BINNED_CYCLES = 4
 PERFORM_GS = True
 
 log_dir = os.join('logs', 'scalars', datetime.now().strftime("%Y%m%d-%H%M%S"))
-excel_log = os.join('excel_log', 'spreadsheets', 'Result_', datetime.now().strftime("%Y%m%d-%H%M%S") + ".xlsx")
+excel_log = os.join('excel_log', 'spreadsheets', 'Result_' + datetime.now().strftime("%Y%m%d-%H%M%S") + ".xlsx")
 
 (ds_train, ds_test), ds_info = tfds.load(
     'mnist',
@@ -124,13 +124,13 @@ def epoch_cycle(attack, epsilon, transfer, distribution):
     for x_entries in count:
         for amount_of_entries in range(x_entries):
             results_list = embed_models(amount_of_entries, BASE_SCALAR, attack, epsilon, transfer)
-            results_list = np.insert(results_list, 0, x_entries, axis=0)
+            results_list = np.insert(results_list, 0, x_entries, axis=1).flatten()
 
     return results_list
 
 
 def unroll_print(results):
-        data = pd.DataFrame(results, columns=['Epoch Number', 'Loss', 'Accuracy', 'Validation Loss',
+        data = pd.DataFrame([results], columns=['Epoch Number', 'Loss', 'Accuracy', 'Validation Loss',
                                               'Validation Accuracy'])
 
         data.to_excel(excel_log, index=False)
@@ -248,25 +248,20 @@ if os.isfile(CONFIGURATION_DIRECTORY) and PERFORM_GS is False:
     config = ast.literal_eval(contents)
     attack, epsilon, transfer, distribution = (config[key] for key in ['Attack', 'Epsilon', 'Transfer_Methods',
                                                                        'Distribution'])
+    print("Currently starting attack " + attack + " with epsilon " + epsilon + " and transfer method " + transfer + ".")
+    attack = attacks[int(attack)]
+    distribution = distributions[int(distribution)]
     data = epoch_cycle(attack, epsilon, transfer, distribution)
     unroll_print(data)
-    # useless?
-    """
-    for i in enumerate(data):
-        datum = data[i]
-        results.append(pd.DataFrame(datum, columns=['Epoch Number', 'Loss', 'Accuracy', 'Validation Loss',
-                                                    'Validation Accuracy']))
-    """
     file.close()
 
 else:
     for a_idx, attack in enumerate(attacks):
         for e_idx, epsilon in enumerate(epsilons):
             for t_idx, transfer in enumerate(transfer_methods):
+                print("Currently starting attack " + str(a_idx) + " with epsilon " + str(e_idx) +
+                      " and transfer method " + str(t_idx) + ".")
                 for distribution in distributions:
-                    if (a_idx+1) % 5 == 0:
-                        print("Currently starting attack " + str(a_idx) + " with epsilon " + str(e_idx) + " and transfer method "
-                              + str(t_idx) + ".")
                     data = epoch_cycle(attack, epsilon, transfer, distribution)
                     unroll_print(data)
 
