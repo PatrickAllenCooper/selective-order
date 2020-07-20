@@ -248,10 +248,13 @@ if os.isfile(CONFIGURATION_DIRECTORY):
                                                                        'Distribution'])
     data = epoch_cycle(attack, epsilon, transfer, distribution)
     unroll_print(data)
+    # useless?
+    """
     for i in enumerate(data):
         datum = data[i]
         results.append(pd.DataFrame(datum, columns=['Epoch Number', 'Loss', 'Accuracy', 'Validation Loss',
                                                     'Validation Accuracy']))
+    """
     file.close()
 
 else:
