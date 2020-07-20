@@ -25,7 +25,7 @@ tf.enable_v2_behavior()
 APPLY_TRANSFER = True
 BASE_SCALAR = 1
 CONFIGURATION_DIRECTORY = "mnist_configuration.txt"
-SHOW_DISTRIBUTION_GRAPH = True
+SHOW_DISTRIBUTION_GRAPH = False
 BINNED_CYCLES = 4
 
 log_dir = os.join('logs', 'scalars', datetime.now().strftime("%Y%m%d-%H%M%S"))
