@@ -23,10 +23,11 @@ tfds.disable_progress_bar()
 tf.enable_v2_behavior()
 
 APPLY_TRANSFER = True
+NUMBER_OF_SAMPLES = 3
 BASE_SCALAR = 1
 CONFIGURATION_DIRECTORY = "mnist_configuration"
-SHOW_DISTRIBUTION_GRAPH = False
-BINNED_CYCLES = 4
+SHOW_DISTRIBUTION_GRAPH = True
+BINNED_CYCLES = 1
 PERFORM_GS = True
 
 log_dir = os.join('logs', 'scalars', datetime.now().strftime("%Y%m%d-%H%M%S"))
@@ -110,7 +111,7 @@ def epoch_cycle(attack, epsilon, transfer, distribution):
     a = 5.0
     n = 1000
     count, bins, ignored = plt.hist(distribution, bins=BINNED_CYCLES)
-    x = np.linspace(0, 1, 100)
+    x = np.linspace(0, 1, NUMBER_OF_SAMPLES)
     y = a * x ** (a - 1.)
     normed_y = n * np.diff(bins)[0] * y
     plt.title('Epoch Proportion')
@@ -200,7 +201,7 @@ transfer_methods = [
 
 # TODO: Add distribution arguments
 distributions = [
-    np.random.poisson(lam=1, size=100),
+    np.random.poisson(lam=1, size=NUMBER_OF_SAMPLES),
     """
     np.random.power(),
     np.random.beta(),
