@@ -28,6 +28,9 @@ CONFIGURATION_DIRECTORY = "mnist_configuration.txt"
 SHOW_DISTRIBUTION_GRAPH = True
 BINNED_CYCLES = 4
 
+log_dir = os.join('logs', 'scalars', datetime.now().strftime("%Y%m%d-%H%M%S"))
+excel_log = os.join('excel_log', 'spreadsheets', 'Result_', datetime.now().strftime("%Y%m%d-%H%M%S") + ".xlsx")
+
 (ds_train, ds_test), ds_info = tfds.load(
     'mnist',
     split=['train', 'test'],
@@ -129,7 +132,6 @@ def unroll_print(results):
         data = pd.DataFrame(results, columns=['Epoch Number', 'Loss', 'Accuracy', 'Validation Loss',
                                               'Validation Accuracy'])
 
-        excel_log = "excel_log\\spreadsheets\\Result_" + datetime.now().strftime("%Y%m%d-%H%M%S") + ".xlsx"
         data.to_excel(excel_log, index=False)
 
 
@@ -146,7 +148,6 @@ ds_test = ds_test.batch(128)
 ds_test = ds_test.cache()
 ds_test = ds_test.prefetch(tf.data.experimental.AUTOTUNE)
 
-log_dir = "logs\\scalars\\" + datetime.now().strftime("%Y%m%d-%H%M%S")
 tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=log_dir)
 
 baseline_model = build_model()
