@@ -9,6 +9,7 @@ import foolbox.attacks as fa
 import eagerpy as ep
 import numpy as np
 import ast
+import xlsxwriter
 import os.path as os
 import matplotlib.pyplot as plt
 from datetime import datetime
@@ -26,7 +27,7 @@ APPLY_TRANSFER = True
 NUMBER_OF_SAMPLES = 3
 BASE_SCALAR = 1
 CONFIGURATION_DIRECTORY = "mnist_configuration"
-SHOW_DISTRIBUTION_GRAPH = True
+SHOW_DISTRIBUTION_GRAPH = False
 BINNED_CYCLES = 1
 PERFORM_GS = True
 
@@ -121,20 +122,29 @@ def epoch_cycle(attack, epsilon, transfer, distribution):
     if SHOW_DISTRIBUTION_GRAPH:
         plt.show()
 
+    agg_results = []
+
     count = np.array(count.astype(int))
     for x_entries in count:
         for amount_of_entries in range(x_entries):
             results_list = embed_models(amount_of_entries, BASE_SCALAR, attack, epsilon, transfer)
             results_list = np.insert(results_list, 0, x_entries, axis=1).flatten()
+            agg_results.append(results_list)
 
-    return results_list
+    return agg_results
 
 
 def unroll_print(results):
-        data = pd.DataFrame([results], columns=['Epoch Number', 'Loss', 'Accuracy', 'Validation Loss',
-                                              'Validation Accuracy'])
+    log = []
+    for datum in results:
+        log.append(pd.DataFrame([datum], columns=['Epoch Number', 'Loss', 'Accuracy', 'Validation Loss',
+                                                    'Validation Accuracy']))
 
-        data.to_excel(excel_log, index=False)
+    with xlsxwriter.Workbook(excel_log) as workbook:
+        worksheet = workbook.add_worksheet()
+
+        for row_num, data in enumerate(log):
+            worksheet.write_row(row_num, 0, data)
 
 
 ds_train = ds_train.map(
@@ -268,6 +278,7 @@ else:
 
 # TODO: Introduce capacity for composite transfer modes. ltg.
 # TODO: Add shap explainers, only for best model. ltg.
+# TODO: Print out each line separately with the associated method components of the given method.
 
 print("Code is the result of research performed by " + __author__ + " for the paper " + __source_url__ + ". For more"
                                                                     " information please contact " + __email__ + ".")
