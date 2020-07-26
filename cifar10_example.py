@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""Intended to establish a reasonable baseline for comparison via selective injection within mnist."""
+"""Intended to establish a reasonable baseline for comparison via selective injection within cifar10."""
 
 import tensorflow.compat.v2 as tf
 import tensorflow_datasets as tfds
@@ -26,7 +26,7 @@ tf.enable_v2_behavior()
 APPLY_TRANSFER = True
 NUMBER_OF_SAMPLES = 1
 BASE_SCALAR = 1
-CONFIGURATION_DIRECTORY = "mnist_configuration"
+CONFIGURATION_DIRECTORY = "cifar10_configuration"
 SHOW_DISTRIBUTION_GRAPH = False
 BINNED_CYCLES = 1
 PERFORM_GS = True
@@ -36,7 +36,7 @@ log_dir = os.join('logs', 'scalars', datetime.now().strftime("%Y%m%d-%H%M%S"))
 excel_log = os.join('excel_log', 'spreadsheets', 'Result_' + datetime.now().strftime("%Y%m%d-%H%M%S") + ".xlsx")
 
 (ds_train, ds_test), ds_info = tfds.load(
-    'mnist',
+    'cifar10',
     split=['train', 'test'],
     shuffle_files=True,
     as_supervised=True,
@@ -278,10 +278,6 @@ else:
                     data.append(epoch_cycle(attack, epsilon, transfer, distribution))
 
     unroll_print(data)
-
-# TODO: Introduce capacity for composite transfer modes. ltg.
-# TODO: Add shap explainers, only for best model. ltg.
-# TODO: Print out each line separately with the associated method components of the given method.
 
 print("Code is the result of research performed by " + __author__ + " for the paper " + __source_url__ + ". For more"
                                                                     " information please contact " + __email__ + ".")
