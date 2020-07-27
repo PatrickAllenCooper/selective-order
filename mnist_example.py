@@ -23,6 +23,7 @@ __source_url__ = "paper@journal.com"
 tfds.disable_progress_bar()
 tf.enable_v2_behavior()
 
+NUM_CLASSES = 10
 APPLY_TRANSFER = True
 NUMBER_OF_SAMPLES = 1
 BASE_SCALAR = 1
@@ -33,7 +34,7 @@ PERFORM_GS = True
 PERFORM_GS_OPT = False
 
 log_dir = os.join('logs', 'scalars', datetime.now().strftime("%Y%m%d-%H%M%S"))
-excel_log = os.join('excel_log', 'spreadsheets', 'Result_' + datetime.now().strftime("%Y%m%d-%H%M%S") + ".xlsx")
+excel_log = os.join('excel_log', 'spreadsheets', 'Result_MNIST_' + datetime.now().strftime("%Y%m%d-%H%M%S") + ".xlsx")
 
 (ds_train, ds_test), ds_info = tfds.load(
     'mnist',
@@ -53,7 +54,7 @@ def build_model():
     model = tf.keras.models.Sequential([
         tf.keras.layers.Flatten(input_shape=(28, 28, 1)),
         tf.keras.layers.Dense(128, activation='relu'),
-        tf.keras.layers.Dense(10, activation='softmax')
+        tf.keras.layers.Dense(NUM_CLASSES, activation='softmax')
     ])
     model.compile(
         loss='sparse_categorical_crossentropy',
@@ -135,17 +136,20 @@ def epoch_cycle(attack, epsilon, transfer, distribution):
     return agg_results
 
 
-def unroll_print(results):
+def unroll_print(data):
     log = []
-    for datum in results:
-        log.append(pd.DataFrame([datum], columns=['Epoch Number', 'Loss', 'Accuracy', 'Validation Loss',
-                                                    'Validation Accuracy']))
+    for distribution in data:
+        for transfer_method in distribution:
+        # columns=['Epoch Number', 'Loss', 'Accuracy', 'Validation Loss',
+        #                                                   'Validation Accuracy']
+            transfer_method = transfer_method.tolist()
+            log.append(transfer_method)
 
     with xlsxwriter.Workbook(excel_log) as workbook:
         worksheet = workbook.add_worksheet()
 
-        for row_num, data in enumerate(log):
-            worksheet.write_row(row_num, 0, data)
+        for row_num, record in enumerate(log):
+            worksheet.write_row(row_num, 0, record)
 
 
 ds_train = ds_train.map(
@@ -187,6 +191,14 @@ attacks = [
     fa.LinfDeepFoolAttack(),
 ]
 
+attacks_names = [
+    "FGSM",
+    "LinfPGD",
+    "LinfBasicIterativeAttack",
+    "LinfAdditiveUniformNoiseAttack",
+    "LinfDeepFoolAttack"
+]
+
 epsilons = [
     0.0,
     0.0005,
@@ -201,7 +213,7 @@ epsilons = [
     0.1,
     0.3,
     0.5,
-    1.0,
+    1.0
 ]
 
 transfer_methods = [
@@ -228,7 +240,6 @@ distributions = [
     np.random.uniform(),
     """
 ]
-
 
 print("epsilons")
 print(epsilons)
@@ -272,12 +283,13 @@ else:
     for a_idx, attack in enumerate(attacks):
         for e_idx, epsilon in enumerate(epsilons):
             for t_idx, transfer in enumerate(transfer_methods):
-                print("Currently starting attack " + str(a_idx) + " with epsilon " + str(e_idx) +
-                      " and transfer method " + str(t_idx) + ".")
+                print("Currently starting attack " + str(attacks_names[a_idx]) + " with epsilon " + str(epsilon) +
+                      " and transfer method " + str(transfer) + ".")
                 for distribution in distributions:
                     data.append(epoch_cycle(attack, epsilon, transfer, distribution))
 
     unroll_print(data)
+
 
 # TODO: Introduce capacity for composite transfer modes. ltg.
 # TODO: Add shap explainers, only for best model. ltg.

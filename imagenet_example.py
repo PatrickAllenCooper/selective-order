@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""Intended to establish a reasonable baseline for comparison via selective injection within cifar10."""
+"""Intended to establish a reasonable baseline for comparison via selective injection within imagenet."""
 
 import tensorflow.compat.v2 as tf
 import tensorflow_datasets as tfds
@@ -23,21 +23,20 @@ __source_url__ = "paper@journal.com"
 tfds.disable_progress_bar()
 tf.enable_v2_behavior()
 
-NUM_CLASSES = 10
 APPLY_TRANSFER = True
 NUMBER_OF_SAMPLES = 1
 BASE_SCALAR = 1
-CONFIGURATION_DIRECTORY = "cifar10_configuration"
+CONFIGURATION_DIRECTORY = "imagenet_configuration"
 SHOW_DISTRIBUTION_GRAPH = False
 BINNED_CYCLES = 1
 PERFORM_GS = True
 PERFORM_GS_OPT = False
 
 log_dir = os.join('logs', 'scalars', datetime.now().strftime("%Y%m%d-%H%M%S"))
-excel_log = os.join('excel_log', 'spreadsheets', 'Result_CIFAR10_' + datetime.now().strftime("%Y%m%d-%H%M%S") + ".xlsx")
+excel_log = os.join('excel_log', 'spreadsheets', 'Result_IMAGENET_' + datetime.now().strftime("%Y%m%d-%H%M%S") + ".xlsx")
 
 (ds_train, ds_test), ds_info = tfds.load(
-    'cifar10',
+    'imagenet_v2',
     split=['train', 'test'],
     shuffle_files=True,
     as_supervised=True,
@@ -52,26 +51,9 @@ def normalize_img(image, label):
 
 def build_model():
     model = tf.keras.models.Sequential([
-        tf.keras.layers.Conv2D(32, (3, 3), padding='same', input_shape=ds_train.shape[1:]),
-        tf.keras.layers.Activation('relu'),
-        tf.keras.layers.Conv2D(32, (3, 3)),
-        tf.keras.layers.Activation('relu'),
-        tf.keras.layers.MaxPooling2D(pool_size=(2, 2)),
-        tf.keras.layers.Dropout(0.25),
-
-        tf.keras.layers.Conv2D(64, (3, 3), padding='same'),
-        tf.keras.layers.Activation('relu'),
-        tf.keras.layers.Conv2D(64, (3, 3)),
-        tf.keras.layers.Activation('relu'),
-        tf.keras.layers.MaxPooling2D(pool_size=(2, 2)),
-        tf.keras.layers.Dropout(0.25),
-
-        tf.keras.layers.Flatten(),
-        tf.keras.layers.Dense(512),
-        tf.keras.layers.Activation('relu'),
-        tf.keras.layers.Dropout(0.5),
-        tf.keras.layers.Dense(NUM_CLASSES),
-        tf.keras.layers.Activation('softmax')
+        tf.keras.layers.Flatten(input_shape=(28, 28, 1)),
+        tf.keras.layers.Dense(128, activation='relu'),
+        tf.keras.layers.Dense(10, activation='softmax')
     ])
     model.compile(
         loss='sparse_categorical_crossentropy',
