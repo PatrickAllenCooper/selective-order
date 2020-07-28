@@ -3,7 +3,6 @@
 
 import tensorflow.compat.v2 as tf
 import tensorflow_datasets as tfds
-import pandas as pd
 from tensorflow.keras.utils import multi_gpu_model
 import foolbox as fb
 import foolbox.attacks as fa
@@ -37,8 +36,6 @@ PERFORM_GS_OPT = False
 
 # construct the argument parse and parse the arguments
 ap = argparse.ArgumentParser()
-ap.add_argument("-o", "--output", required=True,
-                help="path to output plot")
 ap.add_argument("-g", "--gpus", type=int, default=1,
                 help="# of GPUs to use for training")
 args = vars(ap.parse_args())
@@ -194,12 +191,13 @@ ds_train = ds_train.map(
     normalize_img, num_parallel_calls=tf.data.experimental.AUTOTUNE)
 ds_train = ds_train.cache()
 ds_train = ds_train.shuffle(ds_info.splits['train'].num_examples)
-ds_train = ds_train.batch(128)
+# 64 samples per GPU
+ds_train = ds_train.batch(64 * G)
 ds_train = ds_train.prefetch(tf.data.experimental.AUTOTUNE)
 
 ds_test = ds_test.map(
     normalize_img, num_parallel_calls=tf.data.experimental.AUTOTUNE)
-ds_test = ds_test.batch(128)
+ds_test = ds_test.batch(64 * G)
 ds_test = ds_test.cache()
 ds_test = ds_test.prefetch(tf.data.experimental.AUTOTUNE)
 
