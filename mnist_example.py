@@ -65,11 +65,6 @@ def build_model():
         tf.keras.layers.Dense(128, activation='relu'),
         tf.keras.layers.Dense(NUM_CLASSES, activation='softmax')
     ])
-    model.compile(
-        loss='sparse_categorical_crossentropy',
-        optimizer=tf.keras.optimizers.Adam(0.001),
-        metrics=['accuracy'],
-    )
     return model
 
 
@@ -91,6 +86,16 @@ def embed_models(epochs_a, epochs_b, attack, epsilon, transfer):
 
         adversarial_learner = build_model()
         standard_learner = build_model()
+        adversarial_learner.compile(
+            loss='sparse_categorical_crossentropy',
+            optimizer=tf.keras.optimizers.Adam(0.001),
+            metrics=['accuracy'],
+        )
+        standard_learner.compile(
+            loss='sparse_categorical_crossentropy',
+            optimizer=tf.keras.optimizers.Adam(0.001),
+            metrics=['accuracy'],
+        )
 
     else:
         # disable eager execution
@@ -105,6 +110,17 @@ def embed_models(epochs_a, epochs_b, attack, epsilon, transfer):
 
         adversarial_learner = multi_gpu_model(adversarial_learner, gpus=G)
         standard_learner = multi_gpu_model(standard_learner, gpus=G)
+
+        adversarial_learner.compile(
+            loss='sparse_categorical_crossentropy',
+            optimizer=tf.keras.optimizers.Adam(0.001),
+            metrics=['accuracy'],
+        )
+        standard_learner.compile(
+            loss='sparse_categorical_crossentropy',
+            optimizer=tf.keras.optimizers.Adam(0.001),
+            metrics=['accuracy'],
+        )
 
     adversarial_learner.fit(
         adv,
@@ -204,6 +220,12 @@ ds_test = ds_test.prefetch(tf.data.experimental.AUTOTUNE)
 tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=log_dir)
 
 baseline_model = build_model()
+
+baseline_model.compile(
+    loss='sparse_categorical_crossentropy',
+    optimizer=tf.keras.optimizers.Adam(0.001),
+    metrics=['accuracy'],
+)
 
 baseline_model.fit(
     ds_train,
