@@ -126,6 +126,7 @@ def embed_models(epochs_a, epochs_b, attack, epsilon, transfer):
         adv,
         labels,
         epochs=epochs_a,
+        steps_per_epoch=len(ds_train) // (64 * G),
         validation_data=ds_test,
         callbacks=[]
     )
@@ -136,6 +137,7 @@ def embed_models(epochs_a, epochs_b, attack, epsilon, transfer):
         images,
         labels,
         epochs=epochs_b,
+        steps_per_epoch=len(ds_train) // (64 * G),
         validation_data=ds_test,
         callbacks=[tensorboard_callback]
     )
