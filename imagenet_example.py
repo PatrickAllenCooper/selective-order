@@ -102,13 +102,16 @@ def embed_models(epochs_a, epochs_b, attack, epsilon, transfer):
     loss = history.history['loss']
     val_loss = history.history['val_loss']
 
-    epoch_results = np.array([[loss, acc, val_loss, val_acc]])
+    epoch_results = np.array([[str(loss), str(acc), str(val_loss), str(val_acc)]])
 
     return epoch_results
 
 
 # injects weights of adversarial models into  as given by distribution
-def epoch_cycle(attack, epsilon, transfer, distribution):
+def epoch_cycle(attack, epsilon,
+                transfer, distribution,
+                attacks_name, epsilon_name,
+                transfer_method_name, distributions_name):
     a = 5.0
     n = 1000
     count, bins, ignored = plt.hist(distribution, bins=BINNED_CYCLES)
@@ -128,18 +131,25 @@ def epoch_cycle(attack, epsilon, transfer, distribution):
     for x_entries in count:
         for amount_of_entries in range(x_entries):
             results_list = embed_models(amount_of_entries, BASE_SCALAR, attack, epsilon, transfer)
-            results_list = np.insert(results_list, 0, x_entries, axis=1).flatten()
+            results_list = np.insert(results_list, 0, x_entries, axis=1)
+            results_list = np.insert(results_list, 0, distributions_name, axis=1)
+            results_list = np.insert(results_list, 0, transfer_method_name, axis=1)
+            results_list = np.insert(results_list, 0, epsilon_name, axis=1)
+            results_list = np.insert(results_list, 0, attacks_name, axis=1).flatten()
             agg_results.append(results_list)
 
     return agg_results
 
 
 def unroll_print(data):
+    columns = ['Attack_Name', 'Epsilon_Name',
+               'Transfer_Name', 'Distribution_Name',
+               'Epoch Number', 'Loss', 'Accuracy',
+               'Validation Loss', 'Validation Accuracy']
     log = []
     for distribution in data:
         for transfer_method in distribution:
-            # columns=['Epoch Number', 'Loss', 'Accuracy', 'Validation Loss',
-            #                                                   'Validation Accuracy']
+
             transfer_method = transfer_method.tolist()
             log.append(transfer_method)
 
@@ -215,8 +225,8 @@ epsilons = [
 ]
 
 transfer_methods = [
-    "Transfer With Last Layer",
-    "Transfer With No Last Layer",
+    #"Transfer With Last Layer",
+    #"Transfer With No Last Layer",
     "Direct Copy Weights"
 ]
 
@@ -239,6 +249,10 @@ distributions = [
     """
 ]
 
+distributions_names = [
+    "poisson",
+    "poisson"
+]
 
 print("epsilons")
 print(epsilons)
@@ -283,9 +297,10 @@ else:
         for e_idx, epsilon in enumerate(epsilons):
             for t_idx, transfer in enumerate(transfer_methods):
                 print("Currently starting attack " + str(attacks_names[a_idx]) + " with epsilon " + str(epsilon) +
-                      " and transfer method " + str(transfer) + ".")
-                for distribution in distributions:
-                    data.append(epoch_cycle(attack, epsilon, transfer, distribution))
+                      " and transfer method " + transfer + ".")
+                for d_idx, distribution in enumerate(distributions):
+                    data.append(epoch_cycle(attack, epsilon, transfer, distribution, attacks_names[a_idx],
+                                            str(epsilon), transfer_methods, distributions_names[d_idx]))
 
     unroll_print(data)
 
