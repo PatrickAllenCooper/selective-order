@@ -4,11 +4,13 @@
 import tensorflow.compat.v2 as tf
 import tensorflow_datasets as tfds
 import pandas as pd
+from tensorflow.keras.utils import multi_gpu_model
 import foolbox as fb
 import foolbox.attacks as fa
 import eagerpy as ep
 import numpy as np
 import ast
+import argparse
 import xlsxwriter
 import os.path as os
 import matplotlib.pyplot as plt
@@ -32,6 +34,16 @@ SHOW_DISTRIBUTION_GRAPH = False
 BINNED_CYCLES = 4
 PERFORM_GS = True
 PERFORM_GS_OPT = False
+
+# construct the argument parse and parse the arguments
+ap = argparse.ArgumentParser()
+ap.add_argument("-o", "--output", required=True,
+                help="path to output plot")
+ap.add_argument("-g", "--gpus", type=int, default=1,
+                help="# of GPUs to use for training")
+args = vars(ap.parse_args())
+# grab the number of GPUs and store it in a conveience variable
+G = args["gpus"]
 
 log_dir = os.join('logs', 'scalars', datetime.now().strftime("%Y%m%d-%H%M%S"))
 excel_log = os.join('excel_log', 'spreadsheets', 'Result_MNIST_' + datetime.now().strftime("%Y%m%d-%H%M%S") + ".xlsx")
@@ -75,11 +87,28 @@ def apply_transfer(model_a, model_b, transfer):
 
 # nest one model within another
 def embed_models(epochs_a, epochs_b, attack, epsilon, transfer):
-
     # Apply selected method
     _, adv, success = attack(fmodel, images, labels, epsilons=epsilon)
+    if G <= 1:
+        print("[INFO] training with 1 GPU...")
 
-    adversarial_learner = build_model()
+        adversarial_learner = build_model()
+        standard_learner = build_model()
+
+    else:
+        # disable eager execution
+        tf.compat.v1.disable_eager_execution()
+        print("[INFO] training with {} GPUs...".format(G))
+
+        with tf.device("/cpu:0"):
+            print("[INFO] training with 1 GPU...")
+
+            adversarial_learner = build_model()
+            standard_learner = build_model()
+
+        adversarial_learner = multi_gpu_model(adversarial_learner, gpus=G)
+        standard_learner = multi_gpu_model(standard_learner, gpus=G)
+
     adversarial_learner.fit(
         adv,
         labels,
@@ -88,8 +117,8 @@ def embed_models(epochs_a, epochs_b, attack, epsilon, transfer):
         callbacks=[]
     )
 
-    standard_learner = build_model()
     modified_standard_learner = apply_transfer(adversarial_learner, standard_learner, transfer)
+
     history = modified_standard_learner.fit(
         images,
         labels,
@@ -105,7 +134,7 @@ def embed_models(epochs_a, epochs_b, attack, epsilon, transfer):
     val_loss = history.history['val_loss']
 
     epoch_results = np.array([[str(loss), str(acc), str(val_loss), str(val_acc)]])
-    
+
     return epoch_results
 
 
