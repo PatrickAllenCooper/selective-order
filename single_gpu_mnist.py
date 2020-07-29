@@ -3,13 +3,11 @@
 
 import tensorflow.compat.v2 as tf
 import tensorflow_datasets as tfds
-from tensorflow.keras.utils import multi_gpu_model
 import foolbox as fb
 import foolbox.attacks as fa
 import eagerpy as ep
 import numpy as np
 import ast
-import argparse
 import xlsxwriter
 import os.path as os
 import matplotlib.pyplot as plt
@@ -26,23 +24,13 @@ tf.enable_v2_behavior()
 
 NUM_CLASSES = 10
 APPLY_TRANSFER = True
-NUMBER_OF_SAMPLES = 20
+NUMBER_OF_SAMPLES = 100
 BASE_SCALAR = 1
 CONFIGURATION_DIRECTORY = "cifar10_configuration"
 SHOW_DISTRIBUTION_GRAPH = False
-BINNED_CYCLES = 3
+BINNED_CYCLES = 4
 PERFORM_GS = True
 PERFORM_GS_OPT = False
-ADV_TEST_EPOCH_SIZE = 64
-
-# construct the argument parse and parse the arguments
-ap = argparse.ArgumentParser()
-ap.add_argument("-g", "--gpus", type=int, default=1,
-                help="# of GPUs to use for training")
-args = vars(ap.parse_args())
-# grab the number of GPUs and store it in a conveience variable
-G = args["gpus"]
-batch_size = 8 * G
 
 log_dir = os.join('logs', 'scalars', datetime.now().strftime("%Y%m%d-%H%M%S"))
 excel_log = os.join('excel_log', 'spreadsheets', 'Result_MNIST_' + datetime.now().strftime("%Y%m%d-%H%M%S") + ".xlsx")
@@ -61,26 +49,17 @@ def normalize_img(image, label):
     return tf.cast(image, tf.float32) / 255., label
 
 
-ds_train = ds_train.map(
-    normalize_img, num_parallel_calls=tf.data.experimental.AUTOTUNE)
-ds_train = ds_train.cache()
-ds_train = ds_train.shuffle(ds_info.splits['train'].num_examples)
-ds_train = ds_train.batch(batch_size)
-ds_train = ds_train.prefetch(tf.data.experimental.AUTOTUNE)
-
-ds_test = ds_test.map(
-    normalize_img, num_parallel_calls=tf.data.experimental.AUTOTUNE)
-ds_test = ds_test.batch(batch_size)
-ds_test = ds_test.cache()
-ds_test = ds_test.prefetch(tf.data.experimental.AUTOTUNE)
-
-
 def build_model():
     model = tf.keras.models.Sequential([
         tf.keras.layers.Flatten(input_shape=(28, 28, 1)),
         tf.keras.layers.Dense(128, activation='relu'),
         tf.keras.layers.Dense(NUM_CLASSES, activation='softmax')
     ])
+    model.compile(
+        loss='sparse_categorical_crossentropy',
+        optimizer=tf.keras.optimizers.Adam(0.001),
+        metrics=['accuracy'],
+    )
     return model
 
 
@@ -97,63 +76,22 @@ def apply_transfer(model_a, model_b, transfer):
 def embed_models(epochs_a, epochs_b, attack, epsilon, transfer):
     # Apply selected method
     _, adv, success = attack(fmodel, images, labels, epsilons=epsilon)
-    if G <= 1:
-        print("[INFO] training with 1 GPU...")
 
-        adversarial_learner = build_model()
-        standard_learner = build_model()
-        adversarial_learner.compile(
-            loss='sparse_categorical_crossentropy',
-            optimizer=tf.keras.optimizers.Adam(0.001),
-            metrics=['accuracy'],
-        )
-        standard_learner.compile(
-            loss='sparse_categorical_crossentropy',
-            optimizer=tf.keras.optimizers.Adam(0.001),
-            metrics=['accuracy'],
-        )
-
-    else:
-        # disable eager execution
-        tf.compat.v1.disable_eager_execution()
-        print("[INFO] training with {} GPUs...".format(G))
-
-        with tf.device("/cpu:0"):
-            print("[INFO] training with 1 GPU...")
-
-            adversarial_learner = build_model()
-            standard_learner = build_model()
-
-        adversarial_learner = multi_gpu_model(adversarial_learner, gpus=G)
-        standard_learner = multi_gpu_model(standard_learner, gpus=G)
-
-        adversarial_learner.compile(
-            loss='sparse_categorical_crossentropy',
-            optimizer=tf.keras.optimizers.Adam(0.001),
-            metrics=['accuracy'],
-        )
-        standard_learner.compile(
-            loss='sparse_categorical_crossentropy',
-            optimizer=tf.keras.optimizers.Adam(0.001),
-            metrics=['accuracy'],
-        )
-
+    adversarial_learner = build_model()
     adversarial_learner.fit(
         adv,
         labels,
         epochs=epochs_a,
-        steps_per_epoch=ADV_TEST_EPOCH_SIZE // batch_size,
         validation_data=ds_test,
         callbacks=[]
     )
 
+    standard_learner = build_model()
     modified_standard_learner = apply_transfer(adversarial_learner, standard_learner, transfer)
-
     history = modified_standard_learner.fit(
         images,
         labels,
         epochs=epochs_b,
-        steps_per_epoch=ADV_TEST_EPOCH_SIZE // batch_size,
         validation_data=ds_test,
         callbacks=[tensorboard_callback]
     )
@@ -221,15 +159,22 @@ def unroll_print(data):
             worksheet.write_row(row_num, 0, record)
 
 
+ds_train = ds_train.map(
+    normalize_img, num_parallel_calls=tf.data.experimental.AUTOTUNE)
+ds_train = ds_train.cache()
+ds_train = ds_train.shuffle(ds_info.splits['train'].num_examples)
+ds_train = ds_train.batch(128)
+ds_train = ds_train.prefetch(tf.data.experimental.AUTOTUNE)
+
+ds_test = ds_test.map(
+    normalize_img, num_parallel_calls=tf.data.experimental.AUTOTUNE)
+ds_test = ds_test.batch(128)
+ds_test = ds_test.cache()
+ds_test = ds_test.prefetch(tf.data.experimental.AUTOTUNE)
+
 tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=log_dir)
 
 baseline_model = build_model()
-
-baseline_model.compile(
-    loss='sparse_categorical_crossentropy',
-    optimizer=tf.keras.optimizers.Adam(0.001),
-    metrics=['accuracy'],
-)
 
 baseline_model.fit(
     ds_train,
@@ -278,8 +223,8 @@ epsilons = [
 ]
 
 transfer_methods = [
-    #"Transfer With Last Layer",
-    #"Transfer With No Last Layer",
+    # "Transfer With Last Layer",
+    # "Transfer With No Last Layer",
     "Direct Copy Weights"
 ]
 
@@ -340,10 +285,8 @@ if os.isfile(CONFIGURATION_DIRECTORY) and PERFORM_GS is False:
     print("Currently starting attack " + attack + " with epsilon " + epsilon + " and transfer method " + transfer + ".")
     attack = attacks[int(attack)]
     distribution = distributions[int(distribution)]
-    attack_name = attacks_names[int(attack)]
-    distribution_name = distributions_names[int(distribution)]
-    data = epoch_cycle(attack, epsilon, transfer, distribution, attack_name,
-                       str(epsilon), transfer_methods, distribution_name)
+    data = epoch_cycle(attack, epsilon, transfer, distribution)
+    data = epoch_cycle(attack, epsilon, transfer, distribution)
     unroll_print(data)
     file.close()
 
@@ -362,10 +305,9 @@ else:
 
     unroll_print(data)
 
-
 # TODO: Introduce capacity for composite transfer modes. ltg.
 # TODO: Add shap explainers, only for best model. ltg.
 # TODO: Print out each line separately with the associated method components of the given method.
 
 print("Code is the result of research performed by " + __author__ + " for the paper " + __source_url__ + ". For more"
-                                                                    " information please contact " + __email__ + ".")
+                                                                                                         " information please contact " + __email__ + ".")
