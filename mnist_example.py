@@ -117,8 +117,6 @@ def embed_models(epochs_a, epochs_b, attack, epsilon, transfer):
         print("[INFO] training with {} GPUs...".format(G))
 
         with tf.device("/cpu:0"):
-            print("[INFO] training with 1 GPU...")
-
             adversarial_learner = build_model()
             standard_learner = build_model()
 
