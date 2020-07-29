@@ -26,13 +26,14 @@ tf.enable_v2_behavior()
 
 NUM_CLASSES = 10
 APPLY_TRANSFER = True
-NUMBER_OF_SAMPLES = 100
+NUMBER_OF_SAMPLES = 20
 BASE_SCALAR = 1
 CONFIGURATION_DIRECTORY = "cifar10_configuration"
 SHOW_DISTRIBUTION_GRAPH = False
-BINNED_CYCLES = 4
+BINNED_CYCLES = 3
 PERFORM_GS = True
 PERFORM_GS_OPT = False
+ADV_TEST_EPOCH_SIZE = 64
 
 # construct the argument parse and parse the arguments
 ap = argparse.ArgumentParser()
@@ -41,6 +42,7 @@ ap.add_argument("-g", "--gpus", type=int, default=1,
 args = vars(ap.parse_args())
 # grab the number of GPUs and store it in a conveience variable
 G = args["gpus"]
+batch_size = 8 * G
 
 log_dir = os.join('logs', 'scalars', datetime.now().strftime("%Y%m%d-%H%M%S"))
 excel_log = os.join('excel_log', 'spreadsheets', 'Result_MNIST_' + datetime.now().strftime("%Y%m%d-%H%M%S") + ".xlsx")
@@ -57,6 +59,20 @@ excel_log = os.join('excel_log', 'spreadsheets', 'Result_MNIST_' + datetime.now(
 def normalize_img(image, label):
     """Normalizes images: `uint8` -> `float32`."""
     return tf.cast(image, tf.float32) / 255., label
+
+
+ds_train = ds_train.map(
+    normalize_img, num_parallel_calls=tf.data.experimental.AUTOTUNE)
+ds_train = ds_train.cache()
+ds_train = ds_train.shuffle(ds_info.splits['train'].num_examples)
+ds_train = ds_train.batch(batch_size)
+ds_train = ds_train.prefetch(tf.data.experimental.AUTOTUNE)
+
+ds_test = ds_test.map(
+    normalize_img, num_parallel_calls=tf.data.experimental.AUTOTUNE)
+ds_test = ds_test.batch(batch_size)
+ds_test = ds_test.cache()
+ds_test = ds_test.prefetch(tf.data.experimental.AUTOTUNE)
 
 
 def build_model():
@@ -126,7 +142,7 @@ def embed_models(epochs_a, epochs_b, attack, epsilon, transfer):
         adv,
         labels,
         epochs=epochs_a,
-        steps_per_epoch=len(ds_train) // (64 * G),
+        steps_per_epoch=ADV_TEST_EPOCH_SIZE // batch_size,
         validation_data=ds_test,
         callbacks=[]
     )
@@ -137,7 +153,7 @@ def embed_models(epochs_a, epochs_b, attack, epsilon, transfer):
         images,
         labels,
         epochs=epochs_b,
-        steps_per_epoch=len(ds_train) // (64 * G),
+        steps_per_epoch=ADV_TEST_EPOCH_SIZE // batch_size,
         validation_data=ds_test,
         callbacks=[tensorboard_callback]
     )
@@ -205,20 +221,6 @@ def unroll_print(data):
             worksheet.write_row(row_num, 0, record)
 
 
-ds_train = ds_train.map(
-    normalize_img, num_parallel_calls=tf.data.experimental.AUTOTUNE)
-ds_train = ds_train.cache()
-ds_train = ds_train.shuffle(ds_info.splits['train'].num_examples)
-# 64 samples per GPU
-ds_train = ds_train.batch(64 * G)
-ds_train = ds_train.prefetch(tf.data.experimental.AUTOTUNE)
-
-ds_test = ds_test.map(
-    normalize_img, num_parallel_calls=tf.data.experimental.AUTOTUNE)
-ds_test = ds_test.batch(64 * G)
-ds_test = ds_test.cache()
-ds_test = ds_test.prefetch(tf.data.experimental.AUTOTUNE)
-
 tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=log_dir)
 
 baseline_model = build_model()
@@ -235,7 +237,6 @@ baseline_model.fit(
     validation_data=ds_test,
     callbacks=[tensorboard_callback]
 )
-
 
 for images, labels in ds_train.take(1):  # only take first element of dataset
     images_ex = ep.astensors(images)
@@ -339,8 +340,10 @@ if os.isfile(CONFIGURATION_DIRECTORY) and PERFORM_GS is False:
     print("Currently starting attack " + attack + " with epsilon " + epsilon + " and transfer method " + transfer + ".")
     attack = attacks[int(attack)]
     distribution = distributions[int(distribution)]
-    data = epoch_cycle(attack, epsilon, transfer, distribution)
-    data = epoch_cycle(attack, epsilon, transfer, distribution)
+    attack_name = attacks_names[int(attack)]
+    distribution_name = distributions_names[int(distribution)]
+    data = epoch_cycle(attack, epsilon, transfer, distribution, attack_name,
+                       str(epsilon), transfer_methods, distribution_name)
     unroll_print(data)
     file.close()
 

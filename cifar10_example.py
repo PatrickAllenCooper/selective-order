@@ -25,11 +25,11 @@ tf.enable_v2_behavior()
 
 NUM_CLASSES = 10
 APPLY_TRANSFER = True
-NUMBER_OF_SAMPLES = 100
+NUMBER_OF_SAMPLES = 20
 BASE_SCALAR = 1
 CONFIGURATION_DIRECTORY = "cifar10_configuration"
 SHOW_DISTRIBUTION_GRAPH = False
-BINNED_CYCLES = 4
+BINNED_CYCLES = 3
 PERFORM_GS = True
 PERFORM_GS_OPT = False
 
@@ -304,7 +304,10 @@ if os.isfile(CONFIGURATION_DIRECTORY) and PERFORM_GS is False:
     print("Currently starting attack " + attack + " with epsilon " + epsilon + " and transfer method " + transfer + ".")
     attack = attacks[int(attack)]
     distribution = distributions[int(distribution)]
-    data = epoch_cycle(attack, epsilon, transfer, distribution)
+    attack_name = attacks_names[int(attack)]
+    distribution_name = distributions_names[int(distribution)]
+    data = epoch_cycle(attack, epsilon, transfer, distribution, attack_name,
+                       str(epsilon), transfer_methods, distribution_name)
     unroll_print(data)
     file.close()
 
