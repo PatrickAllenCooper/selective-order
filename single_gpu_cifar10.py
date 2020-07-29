@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 """Intended to establish a reasonable baseline for comparison via selective injection within cifar10."""
 
-import tensorflow.compat.v2 as tf
-import tensorflow_datasets as tfds
 import pandas as pd
 import foolbox as fb
 import foolbox.attacks as fa
@@ -13,6 +11,8 @@ import xlsxwriter
 import os.path as os
 import matplotlib.pyplot as plt
 from datetime import datetime
+import tensorflow.compat.v2 as tf
+import tensorflow_datasets as tfds
 
 __author__ = "Patrick Cooper"
 __email__ = "patrick.allen.cooper@gmail.com"
