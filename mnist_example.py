@@ -235,7 +235,7 @@ baseline_model.fit(
     ds_train,
     epochs=1,
     validation_data=ds_test,
-    steps_per_epoch=7500 // batch_size,
+    steps_per_epoch=5,
     callbacks=[tensorboard_callback]
 )
 
