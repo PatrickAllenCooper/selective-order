@@ -144,6 +144,7 @@ def embed_models(epochs_a, epochs_b, attack, epsilon, transfer):
         epochs=epochs_a,
         steps_per_epoch=ADV_TEST_EPOCH_SIZE // batch_size,
         validation_data=ds_test,
+        validation_steps=2500 // batch_size,
         callbacks=[]
     )
 
@@ -155,6 +156,7 @@ def embed_models(epochs_a, epochs_b, attack, epsilon, transfer):
         epochs=epochs_b,
         steps_per_epoch=ADV_TEST_EPOCH_SIZE // batch_size,
         validation_data=ds_test,
+        validation_steps=2500 // batch_size,
         callbacks=[tensorboard_callback]
     )
 
@@ -235,7 +237,8 @@ baseline_model.fit(
     ds_train,
     epochs=1,
     validation_data=ds_test,
-    steps_per_epoch=5,
+    steps_per_epoch=7500 // batch_size,
+    validation_steps=2500 // batch_size,
     callbacks=[tensorboard_callback]
 )
 
