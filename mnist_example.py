@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """Intended to establish a reasonable baseline for comparison via selective injection within mnist."""
 
-import tensorflow.compat.v1 as tf
+import tensorflow.compat.v2 as tf
 import tensorflow_datasets as tfds
 from tensorflow.keras.utils import multi_gpu_model
 import foolbox as fb
@@ -22,8 +22,7 @@ __copyright__ = "Copyright 2020, Patrick Cooper, All rights reserved."
 __source_url__ = "paper@journal.com"
 
 tfds.disable_progress_bar()
-tf.disable_v2_behavior()
-tf.enable_eager_execution()
+tf.enable_v2_behavior()
 
 NUM_CLASSES = 10
 APPLY_TRANSFER = True
@@ -315,6 +314,7 @@ distributions_names = [
 print("epsilons")
 print(epsilons)
 print("")
+
 
 # Evaluation of adversarial methods used
 attack_success = np.zeros((len(attacks), len(epsilons), len(images)), dtype=np.bool)
