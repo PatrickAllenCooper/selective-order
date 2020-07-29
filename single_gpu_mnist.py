@@ -24,7 +24,7 @@ tf.enable_v2_behavior()
 
 NUM_CLASSES = 10
 APPLY_TRANSFER = True
-NUMBER_OF_SAMPLES = 100
+NUMBER_OF_SAMPLES = 20
 BASE_SCALAR = 1
 CONFIGURATION_DIRECTORY = "cifar10_configuration"
 SHOW_DISTRIBUTION_GRAPH = False
@@ -307,6 +307,8 @@ else:
 # TODO: Introduce capacity for composite transfer modes. ltg.
 # TODO: Add shap explainers, only for best model. ltg.
 # TODO: Print out each line separately with the associated method components of the given method.
+
+# TODO: Introduce selective averaging and bring all versions into sync.
 
 print("Code is the result of research performed by " + __author__ + " for the paper " + __source_url__ + ". For more"
                                                                                                          " information please contact " + __email__ + ".")
