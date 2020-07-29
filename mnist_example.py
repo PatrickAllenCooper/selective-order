@@ -368,7 +368,8 @@ else:
 
 # TODO: Introduce capacity for composite transfer modes. ltg.
 # TODO: Add shap explainers, only for best model. ltg.
-# TODO: Print out each line separately with the associated method components of the given method.
+
+# TODO: Evaluate batch, epoch, and step size for all 3 models.
 
 print("Code is the result of research performed by " + __author__ + " for the paper " + __source_url__ + ". For more"
                                                                     " information please contact " + __email__ + ".")
