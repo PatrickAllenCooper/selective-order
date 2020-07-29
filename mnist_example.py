@@ -114,8 +114,6 @@ def embed_models(epochs_a, epochs_b, attack, epsilon, transfer):
         )
 
     else:
-        # disable eager execution
-        tf.compat.v1.disable_eager_execution()
         print("[INFO] training with {} GPUs...".format(G))
 
         with tf.device("/cpu:0"):
