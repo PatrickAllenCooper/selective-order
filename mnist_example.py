@@ -23,6 +23,7 @@ __source_url__ = "paper@journal.com"
 
 tfds.disable_progress_bar()
 tf.disable_v2_behavior()
+tf.enable_eager_execution()
 
 NUM_CLASSES = 10
 APPLY_TRANSFER = True
