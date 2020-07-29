@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """Intended to establish a reasonable baseline for comparison via selective injection within mnist."""
 
-import tensorflow.compat.v2 as tf
+import tensorflow as tf
 import tensorflow_datasets as tfds
 from tensorflow.keras.utils import multi_gpu_model
 import foolbox as fb
@@ -22,7 +22,6 @@ __copyright__ = "Copyright 2020, Patrick Cooper, All rights reserved."
 __source_url__ = "paper@journal.com"
 
 tfds.disable_progress_bar()
-tf.enable_v2_behavior()
 
 NUM_CLASSES = 10
 APPLY_TRANSFER = True
