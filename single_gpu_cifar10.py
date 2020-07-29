@@ -1,8 +1,9 @@
 #!/usr/bin/env python
-"""Intended to establish a reasonable baseline for comparison via selective injection within mnist."""
+"""Intended to establish a reasonable baseline for comparison via selective injection within cifar10."""
 
 import tensorflow.compat.v2 as tf
 import tensorflow_datasets as tfds
+import pandas as pd
 import foolbox as fb
 import foolbox.attacks as fa
 import eagerpy as ep
@@ -33,10 +34,10 @@ PERFORM_GS = True
 PERFORM_GS_OPT = False
 
 log_dir = os.join('logs', 'scalars', datetime.now().strftime("%Y%m%d-%H%M%S"))
-excel_log = os.join('excel_log', 'spreadsheets', 'Result_MNIST_' + datetime.now().strftime("%Y%m%d-%H%M%S") + ".xlsx")
+excel_log = os.join('excel_log', 'spreadsheets', 'Result_CIFAR10_' + datetime.now().strftime("%Y%m%d-%H%M%S") + ".xlsx")
 
 (ds_train, ds_test), ds_info = tfds.load(
-    'mnist',
+    'cifar10',
     split=['train', 'test'],
     shuffle_files=True,
     as_supervised=True,
@@ -51,9 +52,26 @@ def normalize_img(image, label):
 
 def build_model():
     model = tf.keras.models.Sequential([
-        tf.keras.layers.Flatten(input_shape=(28, 28, 1)),
-        tf.keras.layers.Dense(128, activation='relu'),
-        tf.keras.layers.Dense(NUM_CLASSES, activation='softmax')
+        tf.keras.layers.Conv2D(32, (3, 3), padding='same', input_shape=(32, 32, 3)),
+        tf.keras.layers.Activation('relu'),
+        tf.keras.layers.Conv2D(32, (3, 3)),
+        tf.keras.layers.Activation('relu'),
+        tf.keras.layers.MaxPooling2D(pool_size=(2, 2)),
+        tf.keras.layers.Dropout(0.25),
+
+        tf.keras.layers.Conv2D(64, (3, 3), padding='same'),
+        tf.keras.layers.Activation('relu'),
+        tf.keras.layers.Conv2D(64, (3, 3)),
+        tf.keras.layers.Activation('relu'),
+        tf.keras.layers.MaxPooling2D(pool_size=(2, 2)),
+        tf.keras.layers.Dropout(0.25),
+
+        tf.keras.layers.Flatten(),
+        tf.keras.layers.Dense(512),
+        tf.keras.layers.Activation('relu'),
+        tf.keras.layers.Dropout(0.5),
+        tf.keras.layers.Dense(NUM_CLASSES),
+        tf.keras.layers.Activation('softmax')
     ])
     model.compile(
         loss='sparse_categorical_crossentropy',
@@ -183,6 +201,7 @@ baseline_model.fit(
     callbacks=[tensorboard_callback]
 )
 
+
 for images, labels in ds_train.take(1):  # only take first element of dataset
     images_ex = ep.astensors(images)
     labels_ex = ep.astensors(labels)
@@ -219,12 +238,12 @@ epsilons = [
     0.1,
     0.3,
     0.5,
-    1.0
+    1.0,
 ]
 
 transfer_methods = [
-    # "Transfer With Last Layer",
-    # "Transfer With No Last Layer",
+    #"Transfer With Last Layer",
+    #"Transfer With No Last Layer",
     "Direct Copy Weights"
 ]
 
@@ -297,16 +316,10 @@ else:
                 print("Currently starting attack " + str(attacks_names[a_idx]) + " with epsilon " + str(epsilon) +
                       " and transfer method " + transfer + ".")
                 for d_idx, distribution in enumerate(distributions):
-                    data.append(epoch_cycle(attack, epsilon,
-                                            transfer, distribution,
-                                            attacks_names[a_idx], str(epsilon),
-                                            transfer_methods, distributions_names[d_idx]))
+                    data.append(epoch_cycle(attack, epsilon, transfer, distribution, attacks_names[a_idx],
+                                            str(epsilon), transfer_methods, distributions_names[d_idx]))
 
     unroll_print(data)
 
-# TODO: Introduce capacity for composite transfer modes. ltg.
-# TODO: Add shap explainers, only for best model. ltg.
-# TODO: Print out each line separately with the associated method components of the given method.
-
 print("Code is the result of research performed by " + __author__ + " for the paper " + __source_url__ + ". For more"
-                                                                                                         " information please contact " + __email__ + ".")
+                                                                    " information please contact " + __email__ + ".")
