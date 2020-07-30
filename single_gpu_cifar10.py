@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """Intended to establish a reasonable baseline for comparison via selective injection within cifar10."""
 
-import pandas as pd
 import foolbox as fb
 import foolbox.attacks as fa
 import eagerpy as ep
