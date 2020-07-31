@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """Intended to establish a reasonable baseline for comparison via selective injection within cifar10."""
 
-import pandas as pd
+import argparse
 import foolbox as fb
 import foolbox.attacks as fa
 import eagerpy as ep
@@ -33,6 +33,15 @@ BINNED_CYCLES = 3
 PERFORM_GS = True
 PERFORM_GS_OPT = False
 
+# construct the argument parse and parse the arguments
+ap = argparse.ArgumentParser()
+ap.add_argument("-g", "--gpus", type=int, default=1,
+                help="# of GPUs to use for training")
+args = vars(ap.parse_args())
+# grab the number of GPUs and store it in a conveience variable
+G = args["gpus"]
+batch_size = 8 * G
+
 log_dir = os.join('logs', 'scalars', datetime.now().strftime("%Y%m%d-%H%M%S"))
 excel_log = os.join('excel_log', 'spreadsheets', 'Result_CIFAR10_' + datetime.now().strftime("%Y%m%d-%H%M%S") + ".xlsx")
 
@@ -48,6 +57,20 @@ excel_log = os.join('excel_log', 'spreadsheets', 'Result_CIFAR10_' + datetime.no
 def normalize_img(image, label):
     """Normalizes images: `uint8` -> `float32`."""
     return tf.cast(image, tf.float32) / 255., label
+
+
+ds_train = ds_train.map(
+    normalize_img, num_parallel_calls=tf.data.experimental.AUTOTUNE)
+ds_train = ds_train.cache()
+ds_train = ds_train.shuffle(ds_info.splits['train'].num_examples)
+ds_train = ds_train.batch(128)
+ds_train = ds_train.prefetch(tf.data.experimental.AUTOTUNE)
+
+ds_test = ds_test.map(
+    normalize_img, num_parallel_calls=tf.data.experimental.AUTOTUNE)
+ds_test = ds_test.batch(128)
+ds_test = ds_test.cache()
+ds_test = ds_test.prefetch(tf.data.experimental.AUTOTUNE)
 
 
 def build_model():
@@ -176,19 +199,6 @@ def unroll_print(data):
         for row_num, record in enumerate(log):
             worksheet.write_row(row_num, 0, record)
 
-
-ds_train = ds_train.map(
-    normalize_img, num_parallel_calls=tf.data.experimental.AUTOTUNE)
-ds_train = ds_train.cache()
-ds_train = ds_train.shuffle(ds_info.splits['train'].num_examples)
-ds_train = ds_train.batch(128)
-ds_train = ds_train.prefetch(tf.data.experimental.AUTOTUNE)
-
-ds_test = ds_test.map(
-    normalize_img, num_parallel_calls=tf.data.experimental.AUTOTUNE)
-ds_test = ds_test.batch(128)
-ds_test = ds_test.cache()
-ds_test = ds_test.prefetch(tf.data.experimental.AUTOTUNE)
 
 tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=log_dir)
 

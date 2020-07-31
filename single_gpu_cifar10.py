@@ -30,7 +30,10 @@ CONFIGURATION_DIRECTORY = "cifar10_configuration"
 SHOW_DISTRIBUTION_GRAPH = False
 BINNED_CYCLES = 4
 PERFORM_GS = True
+
+# Baseline model parameters
 PERFORM_GS_OPT = False
+BASELINE_EPOCHS = 5
 
 log_dir = os.join('logs', 'scalars', datetime.now().strftime("%Y%m%d-%H%M%S"))
 excel_log = os.join('excel_log', 'spreadsheets', 'Result_CIFAR10_' + datetime.now().strftime("%Y%m%d-%H%M%S") + ".xlsx")
@@ -180,12 +183,12 @@ ds_train = ds_train.map(
     normalize_img, num_parallel_calls=tf.data.experimental.AUTOTUNE)
 ds_train = ds_train.cache()
 ds_train = ds_train.shuffle(ds_info.splits['train'].num_examples)
-ds_train = ds_train.batch(128)
+ds_train = ds_train.batch(16)
 ds_train = ds_train.prefetch(tf.data.experimental.AUTOTUNE)
 
 ds_test = ds_test.map(
     normalize_img, num_parallel_calls=tf.data.experimental.AUTOTUNE)
-ds_test = ds_test.batch(128)
+ds_test = ds_test.batch(16)
 ds_test = ds_test.cache()
 ds_test = ds_test.prefetch(tf.data.experimental.AUTOTUNE)
 
