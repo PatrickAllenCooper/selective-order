@@ -24,7 +24,7 @@ tf.enable_v2_behavior()
 
 NUM_CLASSES = 10
 APPLY_TRANSFER = True
-NUMBER_OF_SAMPLES = 20
+NUMBER_OF_SAMPLES = 10
 BASE_SCALAR = 1
 CONFIGURATION_DIRECTORY = "cifar10_configuration"
 SHOW_DISTRIBUTION_GRAPH = False
@@ -102,7 +102,7 @@ def embed_models(epochs_a, epochs_b, attack, epsilon, transfer):
         adv,
         labels,
         epochs=epochs_a,
-        batch_size=16,
+        batch_size=4,
         validation_data=ds_test,
         callbacks=[]
     )
@@ -113,7 +113,7 @@ def embed_models(epochs_a, epochs_b, attack, epsilon, transfer):
         images,
         labels,
         epochs=epochs_b,
-        batch_size=16,
+        batch_size=4,
         validation_data=ds_test,
         callbacks=[tensorboard_callback]
     )
