@@ -183,12 +183,12 @@ ds_train = ds_train.map(
     normalize_img, num_parallel_calls=tf.data.experimental.AUTOTUNE)
 ds_train = ds_train.cache()
 ds_train = ds_train.shuffle(ds_info.splits['train'].num_examples)
-ds_train = ds_train.batch(16)
+ds_train = ds_train.batch(128)
 ds_train = ds_train.prefetch(tf.data.experimental.AUTOTUNE)
 
 ds_test = ds_test.map(
     normalize_img, num_parallel_calls=tf.data.experimental.AUTOTUNE)
-ds_test = ds_test.batch(16)
+ds_test = ds_test.batch(128)
 ds_test = ds_test.cache()
 ds_test = ds_test.prefetch(tf.data.experimental.AUTOTUNE)
 
@@ -198,7 +198,7 @@ baseline_model = build_model()
 
 baseline_model.fit(
     ds_train,
-    epochs=1,
+    epochs=15,
     validation_data=ds_test,
     callbacks=[tensorboard_callback]
 )

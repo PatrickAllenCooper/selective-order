@@ -178,7 +178,7 @@ baseline_model = build_model()
 
 baseline_model.fit(
     ds_train,
-    epochs=1,
+    epochs=15,
     validation_data=ds_test,
     callbacks=[tensorboard_callback]
 )
