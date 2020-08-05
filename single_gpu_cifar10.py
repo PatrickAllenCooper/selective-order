@@ -93,16 +93,13 @@ def apply_transfer(model_a, model_b, transfer):
 
 
 # nest one model within another
-def embed_models(epochs_a, epochs_b, attack, epsilon, transfer):
-    # Apply selected method
-    _, adv, success = attack(fmodel, images, labels, epsilons=epsilon)
+def embed_models(epochs_a, epochs_b, adv, transfer):
 
     adversarial_learner = build_model()
     adversarial_learner.fit(
         adv,
         labels,
         epochs=epochs_a,
-        batch_size=4,
         validation_data=ds_test,
         callbacks=[]
     )
@@ -113,7 +110,6 @@ def embed_models(epochs_a, epochs_b, attack, epsilon, transfer):
         images,
         labels,
         epochs=epochs_b,
-        batch_size=4,
         validation_data=ds_test,
         callbacks=[tensorboard_callback]
     )
@@ -149,10 +145,13 @@ def epoch_cycle(attack, epsilon,
 
     agg_results = []
 
+    # Apply selected method
+    _, adv, success = attack(fmodel, images, labels, epsilons=epsilon)
+
     count = np.array(count.astype(int))
     for x_entries in count:
         for amount_of_entries in range(x_entries):
-            results_list = embed_models(amount_of_entries, BASE_SCALAR, attack, epsilon, transfer)
+            results_list = embed_models(amount_of_entries, BASE_SCALAR, adv, transfer)
             results_list = np.insert(results_list, 0, x_entries, axis=1)
             results_list = np.insert(results_list, 0, distributions_name, axis=1)
             results_list = np.insert(results_list, 0, transfer_method_name, axis=1)
@@ -201,7 +200,6 @@ baseline_model = build_model()
 baseline_model.fit(
     ds_train,
     epochs=15,
-    batch_size=16,
     validation_data=ds_test,
     callbacks=[tensorboard_callback]
 )
