@@ -41,4 +41,4 @@ epoch or each model cycle using the model trained to whatever extent it is at th
 Compare and contrast their relative performance. 
 
 #### Scheduled Date for Completion
-August 8, 2020
+August 8, 2021
