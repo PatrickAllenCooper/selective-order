@@ -20,28 +20,45 @@
 \and
 }
 
-
 \maketitle
 % End title section
 
 \begin{abstract}
-Modeling the stock market is considered one of the most difficult and yet important tasks of data science. In spite of this, no consistent method has been found which continually yields returns. Here we propose a better than state of the art method which makes us of auxiliary learners to construct a cohesive set of embeddings that allow a LSTM to perform the heavy lifting of informing trading decisions.
+Curriculum learning is an increasing relevant approach to deep learning. The results of such methods are notable in the increase training efficiency. Here we propose a new approach to curriculum learning which obeys an opposite principle to conventional curriculum learning. In this case we deliberately employ state of the art adversarial approaches to determine the ideal way to maximally perturb the network to achieve training efficiency, and in some cases even enhanced training accuracy. These results take a highly abnormal approach to deep learning approaches, we examine various interpretations of the outcomes witnessed.
 \end{abstract}
 
 \begin{keywords}
-Deep Learning; Machine Learning; Predictive Modeling; Computational Mathematics; Finance; Patrick Cooper
+Deep Learning; Machine Learning; Predictive Modeling; Computational Mathematics; Adversarial Machine Learning; Patrick Cooper
 \end{keywords}
 
 \section{Introduction}
 \label{intro}
+Curriculum learning is a well established and relatively mature approach in the field of deep learning. Possible explanations for its effectiveness have been proposed by  and , at the time of this writing the work of  is thought to be the most probable explanation for these results.
+
+Here, we examine and entirely different variety of network training methodology, namely we employ adversarial examples to train the network. These examples are at first homogeneous examples, since no resulting model exists to perform perturbations against. After a set interval of batches. Here I have arbitrarily selected 5, we take the model and once again derive the resulting.........
+
+
 
 \break
 
 \cite{a-review,text-a,text-b}. 
 
-\section{Formatting Systems}
+\section{Method}
+In this study we examine the effect of a range adversarial methods when applied to both classification and regression. Across each we will experiment with batch size, epoch number, and the regularity with which the model updates its adversarial examples. Lastly, we will examine the possibility of using adversarial examples generated from. We find it important to include this final examination because, while shock learning represents some inherent scientific interest, to be effective at making training more efficient, there must be some ability to generalize between models, instead of periodically performing inference.
 
-\section{Figures and Other Displays}
+\subsection{Shock Learning Applied to Image Classification}
+
+\subsection{Shock Learning Applied to NLP Classification}
+
+\subsection{Shock Learning Applied to Stock Market Prediction Using Regression}
+
+\subsection{Transfering Adversarial Examples Between Models}
+Here we have used imagenet to generate a dataset of comparable nature...
+
+\section{Results}
+
+\section{Analysis}
+We make use chap and lime to investigate the resulting expression of models arrived at using the adversarial methods relative to models which make strict use of 
 
 \section{The Main Text}
 \label{main-text}
